@@ -10,7 +10,7 @@ export class FalProvider implements VideoProvider {
   readonly isMock = false;
   readonly configurationHint = "Set FAL_KEY (and optionally FAL_MODEL_ID) in server environment variables.";
   private key = process.env.FAL_KEY ?? "";
-  private model = process.env.FAL_MODEL_ID ?? "fal-ai/wan-t2v";
+  private model = process.env.FAL_MODEL_ID ?? "fal-ai/wan/v2.2-a14b/text-to-video";
   get name() {
     return `fal.ai (${this.model})`;
   }
