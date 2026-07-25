@@ -78,7 +78,7 @@ async function uploadToFalStorage(bytes: Uint8Array, fileName: string, contentTy
     throw new Error(`fal storage initiate HTTP ${initiate.status}: ${body.slice(0, 200)}`);
   }
   const { upload_url, file_url } = (await initiate.json()) as { upload_url: string; file_url: string };
-  const put = await fetch(upload_url, { method: "PUT", headers: { "Content-Type": contentType }, body: new Blob([bytes], { type: contentType }) });
+  const put = await fetch(upload_url, { method: "PUT", headers: { "Content-Type": contentType }, body: bytes as unknown as BodyInit });
   if (!put.ok) throw new Error(`fal storage upload HTTP ${put.status}`);
   return file_url;
 }
