@@ -29,8 +29,8 @@ export async function POST(req: Request) {
 
   let providerChoice: ProviderChoice | undefined;
   if (body?.provider !== undefined && body.provider !== "" && body.provider !== "auto") {
-    if (!["fal", "wan", "mock"].includes(body.provider)) {
-      return Response.json({ error: "Invalid provider. Use fal, wan, mock, or auto." }, { status: 400 });
+    if (!["fal", "wan", "mock", "google"].includes(body.provider)) {
+      return Response.json({ error: "Invalid provider. Use fal, google, wan, mock, or auto." }, { status: 400 });
     }
     providerChoice = body.provider as ProviderChoice;
   }

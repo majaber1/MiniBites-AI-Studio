@@ -53,7 +53,7 @@ export interface Shot {
   attempts: number;
 }
 
-export type ProviderChoice = "fal" | "wan" | "mock";
+export type ProviderChoice = "fal" | "wan" | "mock" | "google";
 
 export type ProductionStatus =
   | "planning"

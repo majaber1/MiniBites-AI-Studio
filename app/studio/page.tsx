@@ -8,7 +8,7 @@ import type { Production } from "@/lib/types";
 const SUGGESTIONS = ["Omelette", "Pizza", "Maqluba", "Mansaf", "Cookies"];
 
 interface ProviderOption {
-  id: "fal" | "wan" | "mock";
+  id: "fal" | "wan" | "mock" | "google";
   name: string;
   configured: boolean;
   isMock: boolean;

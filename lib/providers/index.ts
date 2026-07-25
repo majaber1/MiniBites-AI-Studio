@@ -2,12 +2,14 @@ import type { VideoProvider } from "./types";
 import { FalProvider } from "./fal";
 import { WanSelfHostedProvider } from "./wan";
 import { MockProvider } from "./mock";
+import { GoogleVeoProvider } from "./google";
 import { cleanEnv } from "@/lib/env";
 import type { ProviderChoice } from "@/lib/types";
 
 function build(which: string): VideoProvider {
   if (which === "mock") return new MockProvider();
   if (which === "wan") return new WanSelfHostedProvider();
+  if (which === "google") return new GoogleVeoProvider();
   return new FalProvider();
 }
 
@@ -32,7 +34,7 @@ export interface ProviderOption {
 /** Options for the dashboard provider selector, with real configured state. */
 export function listProviderOptions(): ProviderOption[] {
   const def = (cleanEnv("VIDEO_PROVIDER") ?? "fal").toLowerCase();
-  return (["fal", "wan", "mock"] as ProviderChoice[]).map((id) => {
+  return (["fal", "google", "wan", "mock"] as ProviderChoice[]).map((id) => {
     const prov = build(id);
     return {
       id,
