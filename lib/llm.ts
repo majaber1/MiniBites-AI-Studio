@@ -52,7 +52,10 @@ async function viaAnthropic(dish: string, language: string): Promise<ShotPlan> {
       messages: [{ role: "user", content: PLAN_INSTRUCTIONS(dish, language) }],
     }),
   });
-  if (!res.ok) throw new Error(`Anthropic HTTP ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Anthropic HTTP ${res.status}: ${body.slice(0, 300)}`);
+  }
   const data = (await res.json()) as { content: Array<{ type: string; text?: string }> };
   const text = data.content.find((c) => c.type === "text")?.text ?? "";
   return JSON.parse(text.replace(/```json|```/g, "").trim()) as ShotPlan;
@@ -70,7 +73,10 @@ async function viaGemini(dish: string, language: string): Promise<ShotPlan> {
       }),
     }
   );
-  if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Gemini HTTP ${res.status}: ${body.slice(0, 300)}`);
+  }
   const data = (await res.json()) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error("Gemini returned no plan");
