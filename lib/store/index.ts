@@ -23,10 +23,16 @@ declare global {
   var __minibitesStore: Store | undefined;
 }
 
+/** Strip accidental wrapping quotes/whitespace from pasted env values (e.g. from .env-formatted copy buttons). */
+function cleanEnv(value: string | undefined): string | undefined {
+  const trimmed = value?.trim().replace(/^["']+|["']+$/g, "").trim();
+  return trimmed || undefined;
+}
+
 export function getStore(): Store {
   if (globalThis.__minibitesStore) return globalThis.__minibitesStore;
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url = cleanEnv(process.env.UPSTASH_REDIS_REST_URL);
+  const token = cleanEnv(process.env.UPSTASH_REDIS_REST_TOKEN);
   const store: Store = url && token ? new UpstashStore(url, token) : new MemoryStore();
   globalThis.__minibitesStore = store;
   return store;
