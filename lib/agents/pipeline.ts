@@ -12,6 +12,7 @@ import type { AgentId, AgentState, Production, Shot } from "../types";
 import { getVideoProvider } from "../providers";
 import { createShotPlan } from "../llm";
 import { getStore } from "../store";
+import { falAssemblyConfigured, getMergeStatus, getMergeResult, submitMerge } from "../assembly";
 
 export const AGENT_DEFS: Array<{ id: AgentId; name: string; role: string }> = [
   { id: "orchestrator", name: "Orchestrator", role: "Validates the request and coordinates every stage." },
@@ -101,6 +102,9 @@ export async function advanceProduction(p: Production): Promise<Production> {
       p.planSource = source;
       p.recipeSummary = plan.recipeSummary;
       p.miniatureBrief = plan.miniatureBrief;
+      p.publishTitle = plan.title;
+      p.publishCaption = plan.caption;
+      p.publishHashtags = plan.hashtags;
       done(p, "recipe", plan.recipeSummary);
       done(p, "miniature_director", plan.miniatureBrief);
       done(p, "shot_director", `${plan.shots.length} shots, ~${plan.shots.reduce((s, x) => s + x.seconds, 0)}s total`);
@@ -133,7 +137,7 @@ export async function advanceProduction(p: Production): Promise<Production> {
     } else if (p.status === "review") {
       runReview(p);
     } else if (p.status === "assembling") {
-      runAssembly(p);
+      await runAssembly(p);
     }
   } catch (err) {
     p.error = err instanceof Error ? err.message : "Unexpected pipeline error";
@@ -231,29 +235,89 @@ function runReview(p: Production) {
   }
 }
 
-function runAssembly(p: Production) {
+async function runAssembly(p: Production) {
   const completed = p.shots.filter((s) => s.status === "completed" && s.videoUrl);
   if (p.providerIsMock) {
     done(p, "assembly", "MOCK run — no real clips exist, so no MP4 was assembled.");
-    p.status = "awaiting_approval";
-    start(p, "publishing", "Publishing package prepared. Awaiting manual approval.");
+    finishAssembly(p, completed.reduce((s, x) => s + x.seconds, 0));
     return;
   }
+
+  // A merge job is already in flight: poll it (real provider status, no fake progress).
+  if (p.assemblyJobId) {
+    try {
+      const st = await getMergeStatus(p.assemblyJobId);
+      if (st.state === "in_queue") {
+        log(p, "assembly", `Merge queued${st.queuePosition !== undefined ? ` (position ${st.queuePosition})` : ""}.`);
+        return;
+      }
+      if (st.state === "running") return;
+      if (st.state === "completed") {
+        p.finalVideoUrl = await getMergeResult(p.assemblyJobId);
+        p.assembled = true;
+        done(p, "assembly", `Merged ${completed.length} clips into one vertical MP4 (fal ffmpeg).`);
+        finishAssembly(p, completed.reduce((s, x) => s + x.seconds, 0));
+        return;
+      }
+      throw new Error(st.error);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "merge failed";
+      log(p, "assembly", `Merge failed: ${msg}`);
+      fallbackToIndividualClips(p, completed, `Automatic merge failed (${msg}).`);
+      return;
+    }
+  }
+
   if (process.env.ASSEMBLY_WEBHOOK_URL) {
     // External assembly worker (ffmpeg concat + ASMR bed) — fire and record.
     log(p, "assembly", "Assembly delegated to ASSEMBLY_WEBHOOK_URL worker.");
     done(p, "assembly", `Sent ${completed.length} clips to the assembly worker.`);
-  } else {
-    // Honest default: per-shot MP4s are real and downloadable; single-file
-    // concat requires ffmpeg compute (serverless functions can't do it well).
-    p.finalVideoUrl = completed[0]?.videoUrl;
-    done(
-      p,
-      "assembly",
-      `${completed.length} real clips ready individually. Automatic single-MP4 concat needs an assembly worker (set ASSEMBLY_WEBHOOK_URL) or a desktop editor.`
-    );
+    finishAssembly(p, completed.reduce((s, x) => s + x.seconds, 0));
+    return;
   }
-  p.durationSeconds = completed.reduce((s, x) => s + x.seconds, 0);
+
+  if (completed.length === 1) {
+    p.finalVideoUrl = completed[0].videoUrl;
+    p.assembled = true;
+    done(p, "assembly", "Single clip production — no merge needed.");
+    finishAssembly(p, completed[0].seconds);
+    return;
+  }
+
+  if (falAssemblyConfigured() && completed.length > 1) {
+    // Submit the concat to fal's ffmpeg service and keep polling on subsequent
+    // advances — same durable, refresh-safe pattern as shot generation.
+    try {
+      const ordered = [...completed].sort((a, b) => a.index - b.index).map((s) => s.videoUrl!) ;
+      p.assemblyJobId = await submitMerge(ordered);
+      log(p, "assembly", `Submitted ${ordered.length} clips to fal ffmpeg merge (job ${p.assemblyJobId.slice(0, 12)}…).`);
+      return; // stay in "assembling"; polling resolves it
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "merge submit failed";
+      log(p, "assembly", `Merge submit failed: ${msg}`);
+      fallbackToIndividualClips(p, completed, `Automatic merge failed (${msg}).`);
+      return;
+    }
+  }
+
+  fallbackToIndividualClips(
+    p,
+    completed,
+    "No merge backend available (set FAL_KEY or ASSEMBLY_WEBHOOK_URL)."
+  );
+}
+
+function fallbackToIndividualClips(p: Production, completed: Shot[], reason: string) {
+  // Honest default: per-shot MP4s are real and downloadable.
+  p.finalVideoUrl = completed[0]?.videoUrl;
+  p.assembled = false;
+  p.assemblyJobId = undefined;
+  done(p, "assembly", `${reason} ${completed.length} real clips remain downloadable individually.`);
+  finishAssembly(p, completed.reduce((s, x) => s + x.seconds, 0));
+}
+
+function finishAssembly(p: Production, durationSeconds: number) {
+  p.durationSeconds = durationSeconds;
   p.status = "awaiting_approval";
   start(p, "publishing", "Publishing package prepared. Awaiting manual approval.");
 }

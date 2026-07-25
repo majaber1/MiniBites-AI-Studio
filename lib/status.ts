@@ -44,18 +44,22 @@ export function integrationStatuses(): IntegrationStatus[] {
     },
     {
       key: "assembly",
-      label: "Assembly worker (ffmpeg)",
-      configured: Boolean(process.env.ASSEMBLY_WEBHOOK_URL),
+      label: "Assembly (ffmpeg merge)",
+      configured: Boolean(process.env.ASSEMBLY_WEBHOOK_URL || process.env.FAL_KEY),
       detail: process.env.ASSEMBLY_WEBHOOK_URL
         ? "External concat worker connected."
-        : "Not set: clips download individually; single-MP4 concat needs a worker.",
-      requiredEnv: ["ASSEMBLY_WEBHOOK_URL"],
+        : process.env.FAL_KEY
+          ? "fal.ai ffmpeg merge active: shots are concatenated into one vertical MP4 automatically."
+          : "Not set: clips download individually; single-MP4 concat needs FAL_KEY or a worker.",
+      requiredEnv: ["FAL_KEY", "ASSEMBLY_WEBHOOK_URL"],
     },
     {
       key: "youtube",
       label: "YouTube Shorts publishing",
       configured: Boolean(process.env.YOUTUBE_CLIENT_ID && process.env.YOUTUBE_CLIENT_SECRET && process.env.YOUTUBE_REFRESH_TOKEN),
-      detail: "Requires a Google Cloud OAuth client with youtube.upload scope and a refresh token. Publishing stays manual-approval only.",
+      detail: Boolean(process.env.YOUTUBE_CLIENT_ID && process.env.YOUTUBE_CLIENT_SECRET && process.env.YOUTUBE_REFRESH_TOKEN)
+        ? "Connected: approved productions upload to YouTube as Shorts on publish (API-confirmed only)."
+        : "Requires a Google Cloud OAuth client with youtube.upload scope and a refresh token. Publishing stays manual-approval only.",
       requiredEnv: ["YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_REFRESH_TOKEN"],
     },
     {

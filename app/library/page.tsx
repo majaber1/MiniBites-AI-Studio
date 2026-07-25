@@ -84,7 +84,7 @@ export default function LibraryPage() {
                   <button onClick={() => act(p.id, "/approve")}>Approve</button>
                 )}
                 {(p.status === "approved") && (
-                  <button onClick={() => act(p.id, "/publish")}>Prepare publish</button>
+                  <button onClick={() => act(p.id, "/publish")}>Publish now</button>
                 )}
               </div>
               <div style={{ marginTop: 10 }}>

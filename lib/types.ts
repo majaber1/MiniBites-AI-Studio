@@ -86,6 +86,11 @@ export interface Production {
   agents: AgentState[];
   shots: Shot[];
   finalVideoUrl?: string;
+  assembled?: boolean; // true only when a real merged single MP4 exists
+  assemblyJobId?: string;
+  publishTitle?: string;
+  publishCaption?: string;
+  publishHashtags?: string[];
   durationSeconds?: number;
   resolution?: string;
   thumbnailUrl?: string;
