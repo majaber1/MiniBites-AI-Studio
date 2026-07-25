@@ -1,3 +1,4 @@
+import { cleanEnv } from "@/lib/env";
 import type { ProviderShotStatus, ShotInput, ShotResult, VideoProvider } from "./types";
 
 /**
@@ -12,8 +13,8 @@ export class WanSelfHostedProvider implements VideoProvider {
   readonly isMock = false;
   readonly name = "Wan (self-hosted GPU worker)";
   readonly configurationHint = "Set WAN_VIDEO_ENDPOINT (and optional WAN_VIDEO_TOKEN) to your GPU worker URL.";
-  private endpoint = process.env.WAN_VIDEO_ENDPOINT ?? "";
-  private token = process.env.WAN_VIDEO_TOKEN ?? "";
+  private endpoint = cleanEnv("WAN_VIDEO_ENDPOINT") ?? "";
+  private token = cleanEnv("WAN_VIDEO_TOKEN") ?? "";
   get configured() {
     return Boolean(this.endpoint);
   }

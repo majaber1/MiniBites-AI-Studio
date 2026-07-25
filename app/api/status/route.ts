@@ -1,4 +1,5 @@
 import { integrationStatuses } from "@/lib/status";
+import { listProviderOptions } from "@/lib/providers";
 import { isAuthed, passwordConfigured } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
@@ -9,5 +10,6 @@ export async function GET(req: Request) {
     authConfigured: passwordConfigured(),
     signedIn: isAuthed(req),
     integrations: integrationStatuses(),
+    providers: listProviderOptions(),
   });
 }

@@ -8,7 +8,7 @@
 // endpoint, which both reports and advances real state. A production
 // therefore survives refreshes and restarts (with a durable store).
 // ---------------------------------------------------------------------------
-import type { AgentId, AgentState, Production, Shot } from "../types";
+import type { AgentId, AgentState, Production, ProviderChoice, Shot } from "../types";
 import { getVideoProvider } from "../providers";
 import { createShotPlan } from "../llm";
 import { getStore } from "../store";
@@ -59,8 +59,8 @@ function done(p: Production, id: AgentId, note?: string) {
   if (note) a.note = note;
 }
 
-export function createProduction(dish: string, language: "en" | "ar", ownerKey: string): Production {
-  const provider = getVideoProvider();
+export function createProduction(dish: string, language: "en" | "ar", ownerKey: string, providerChoice?: ProviderChoice): Production {
+  const provider = getVideoProvider(providerChoice);
   const now = new Date().toISOString();
   const p: Production = {
     id: `mb_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
@@ -71,6 +71,7 @@ export function createProduction(dish: string, language: "en" | "ar", ownerKey: 
     status: "planning",
     provider: provider.name,
     providerIsMock: provider.isMock,
+    providerChoice,
     planSource: "template",
     agents: initAgents(),
     shots: [],
@@ -91,7 +92,7 @@ export function createProduction(dish: string, language: "en" | "ar", ownerKey: 
  */
 export async function advanceProduction(p: Production): Promise<Production> {
   const store = getStore();
-  const provider = getVideoProvider();
+  const provider = getVideoProvider(p.providerChoice);
   try {
     if (p.status === "planning") {
       // Recipe + Miniature Director + Shot Director + Prompt agents (one LLM plan)
@@ -151,7 +152,7 @@ export async function advanceProduction(p: Production): Promise<Production> {
 const MAX_CONCURRENT = 2;
 
 async function advanceGeneration(p: Production) {
-  const provider = getVideoProvider();
+  const provider = getVideoProvider(p.providerChoice);
 
   // 1) Poll active shots
   for (const shot of p.shots) {
@@ -339,7 +340,7 @@ export async function retryShot(p: Production, shotId: string): Promise<Producti
 }
 
 export async function cancelProduction(p: Production): Promise<Production> {
-  const provider = getVideoProvider();
+  const provider = getVideoProvider(p.providerChoice);
   for (const shot of p.shots) {
     if (shot.providerJobId && ["submitted", "in_queue", "generating"].includes(shot.status)) {
       await provider.cancelShot(shot.providerJobId);

@@ -53,6 +53,8 @@ export interface Shot {
   attempts: number;
 }
 
+export type ProviderChoice = "fal" | "wan" | "mock";
+
 export type ProductionStatus =
   | "planning"
   | "generating"
@@ -80,6 +82,7 @@ export interface Production {
   status: ProductionStatus;
   provider: string;
   providerIsMock: boolean;
+  providerChoice?: ProviderChoice; // per-production override of VIDEO_PROVIDER
   planSource: "llm" | "template";
   recipeSummary?: string;
   miniatureBrief?: string;

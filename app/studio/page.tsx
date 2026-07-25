@@ -6,11 +6,21 @@ import StatusBadge from "@/components/StatusBadge";
 import type { Production } from "@/lib/types";
 
 const SUGGESTIONS = ["Omelette", "Pizza", "Maqluba", "Mansaf", "Cookies"];
+
+interface ProviderOption {
+  id: "fal" | "wan" | "mock";
+  name: string;
+  configured: boolean;
+  isMock: boolean;
+  isDefault: boolean;
+}
 const ACTIVE = ["planning", "generating", "review", "assembling"];
 
 export default function StudioPage() {
   const [dish, setDish] = useState("");
   const [language, setLanguage] = useState<"en" | "ar">("en");
+  const [provider, setProvider] = useState<string>("auto");
+  const [providerOptions, setProviderOptions] = useState<ProviderOption[]>([]);
   const [production, setProduction] = useState<Production | null>(null);
   const [error, setError] = useState("");
   const [authStatus, setAuthStatus] = useState<number | null>(null);
@@ -37,6 +47,13 @@ export default function StudioPage() {
   }, []);
 
   useEffect(() => {
+    fetch("/api/status")
+      .then((r) => r.json())
+      .then((d) => Array.isArray(d.providers) && setProviderOptions(d.providers))
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
     // Resume an in-flight production after refresh (real persistence).
     const id = typeof window !== "undefined" ? window.localStorage.getItem("mb_last_production") : null;
     if (id) poll(id);
@@ -49,7 +66,7 @@ export default function StudioPage() {
     try {
       const { production: p } = await api<{ production: Production }>("/api/productions", {
         method: "POST",
-        body: JSON.stringify({ dish, language }),
+        body: JSON.stringify({ dish, language, provider }),
       });
       setProduction(p);
       setAuthStatus(null);
@@ -113,6 +130,16 @@ export default function StudioPage() {
             <select value={language} onChange={(e) => setLanguage(e.target.value as "en" | "ar")} aria-label="Caption language">
               <option value="en">English captions</option>
               <option value="ar">Arabic captions</option>
+            </select>
+            <select value={provider} onChange={(e) => setProvider(e.target.value)} aria-label="Video provider">
+              <option value="auto">
+                {(() => { const d = providerOptions.find((o) => o.isDefault); return d ? `Auto — ${d.name}` : "Auto (server default)"; })()}
+              </option>
+              {providerOptions.map((o) => (
+                <option key={o.id} value={o.id} disabled={!o.configured}>
+                  {o.isMock ? `${o.name} — test only, no real video` : o.name}{o.configured ? "" : " (not configured)"}
+                </option>
+              ))}
             </select>
             <button onClick={startProduction} disabled={busy || dish.trim().length < 2}>
               {busy ? "Starting…" : "Start production"}
