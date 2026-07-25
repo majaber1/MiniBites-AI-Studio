@@ -26,7 +26,13 @@ export default function StudioPage() {
       }
     } catch (e) {
       if (e instanceof ApiError && (e.status === 401 || e.status === 503)) setAuthStatus(e.status);
-      else setError(e instanceof Error ? e.message : "Polling failed.");
+      else if (e instanceof ApiError && e.status === 404) {
+        // The stored production no longer exists (expired or never persisted).
+        // Forget it and return to a clean studio instead of erroring forever.
+        window.localStorage.removeItem("mb_last_production");
+        setProduction(null);
+        setError("");
+      } else setError(e instanceof Error ? e.message : "Polling failed.");
     }
   }, []);
 
