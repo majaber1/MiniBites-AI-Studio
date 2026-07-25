@@ -1,3 +1,4 @@
+import { cleanEnv } from "@/lib/env";
 // ---------------------------------------------------------------------------
 // Planning LLM. Uses Anthropic (ANTHROPIC_API_KEY) or Gemini (GEMINI_API_KEY).
 // If neither key is set, agents fall back to a deterministic template plan
@@ -14,8 +15,8 @@ export interface ShotPlan {
 }
 
 export function llmConfigured(): "anthropic" | "gemini" | null {
-  if (process.env.ANTHROPIC_API_KEY) return "anthropic";
-  if (process.env.GEMINI_API_KEY) return "gemini";
+  if (cleanEnv("ANTHROPIC_API_KEY")) return "anthropic";
+  if (cleanEnv("GEMINI_API_KEY")) return "gemini";
   return null;
 }
 
@@ -29,8 +30,10 @@ export async function createShotPlan(dish: string, language: string): Promise<{ 
   try {
     if (which === "anthropic") return { plan: await viaAnthropic(dish, language), source: "llm" };
     if (which === "gemini") return { plan: await viaGemini(dish, language), source: "llm" };
-  } catch {
-    // fall through to template so a planning-LLM outage never kills the job
+  } catch (err) {
+    // Fall through to template so a planning-LLM outage never kills the job,
+    // but log the cause so it is visible in runtime logs instead of silent.
+    console.error("Planning LLM failed, falling back to template:", err);
   }
   return { plan: templatePlan(dish), source: "template" };
 }
@@ -39,12 +42,12 @@ async function viaAnthropic(dish: string, language: string): Promise<ShotPlan> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
-      "x-api-key": process.env.ANTHROPIC_API_KEY!,
+      "x-api-key": cleanEnv("ANTHROPIC_API_KEY")!,
       "anthropic-version": "2023-06-01",
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: process.env.ANTHROPIC_MODEL ?? "claude-opus-4-8",
+      model: cleanEnv("ANTHROPIC_MODEL") ?? "claude-opus-4-8",
       max_tokens: 2000,
       messages: [{ role: "user", content: PLAN_INSTRUCTIONS(dish, language) }],
     }),
@@ -57,7 +60,7 @@ async function viaAnthropic(dish: string, language: string): Promise<ShotPlan> {
 
 async function viaGemini(dish: string, language: string): Promise<ShotPlan> {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL ?? "gemini-2.5-flash"}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY!)}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${cleanEnv("GEMINI_MODEL") ?? "gemini-2.5-flash"}:generateContent?key=${encodeURIComponent(cleanEnv("GEMINI_API_KEY")!)}`,
     {
       method: "POST",
       headers: { "content-type": "application/json" },

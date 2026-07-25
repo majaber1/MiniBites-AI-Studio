@@ -1,3 +1,4 @@
+import { cleanEnv } from "@/lib/env";
 import type { ProviderShotStatus, ShotInput, ShotResult, VideoProvider } from "./types";
 
 /**
@@ -9,8 +10,17 @@ import type { ProviderShotStatus, ShotInput, ShotResult, VideoProvider } from ".
 export class FalProvider implements VideoProvider {
   readonly isMock = false;
   readonly configurationHint = "Set FAL_KEY (and optionally FAL_MODEL_ID) in server environment variables.";
-  private key = process.env.FAL_KEY ?? "";
-  private model = process.env.FAL_MODEL_ID ?? "fal-ai/wan/v2.2-a14b/text-to-video";
+  private key = cleanEnv("FAL_KEY") ?? "";
+  private model = cleanEnv("FAL_MODEL_ID") ?? "fal-ai/wan/v2.2-a14b/text-to-video";
+  /**
+   * fal queue rule: submit uses the full model path (including subpath),
+   * but request status/result/cancel endpoints use only the base
+   * "{namespace}/{model}" id. E.g. submit to fal-ai/wan/v2.2-a14b/text-to-video,
+   * then poll fal-ai/wan/requests/{id}/status.
+   */
+  private get requestBase() {
+    return this.model.split("/").slice(0, 2).join("/");
+  }
   get name() {
     return `fal.ai (${this.model})`;
   }
@@ -48,7 +58,7 @@ export class FalProvider implements VideoProvider {
   }
 
   async getShotStatus(id: string): Promise<ProviderShotStatus> {
-    const data = (await this.req(`${this.model}/requests/${id}/status?logs=1`)) as {
+    const data = (await this.req(`${this.requestBase}/requests/${id}/status?logs=1`)) as {
       status: string;
       queue_position?: number;
       logs?: Array<{ message: string }>;
@@ -61,7 +71,7 @@ export class FalProvider implements VideoProvider {
   }
 
   async getShotResult(id: string): Promise<ShotResult> {
-    const data = (await this.req(`${this.model}/requests/${id}`)) as {
+    const data = (await this.req(`${this.requestBase}/requests/${id}`)) as {
       video?: { url: string };
       videos?: Array<{ url: string }>;
       seconds?: number;
@@ -72,6 +82,6 @@ export class FalProvider implements VideoProvider {
   }
 
   async cancelShot(id: string) {
-    await this.req(`${this.model}/requests/${id}/cancel`, { method: "PUT" }).catch(() => undefined);
+    await this.req(`${this.requestBase}/requests/${id}/cancel`, { method: "PUT" }).catch(() => undefined);
   }
 }
