@@ -269,14 +269,6 @@ async function runAssembly(p: Production) {
     }
   }
 
-  if (process.env.ASSEMBLY_WEBHOOK_URL) {
-    // External assembly worker (ffmpeg concat + ASMR bed) — fire and record.
-    log(p, "assembly", "Assembly delegated to ASSEMBLY_WEBHOOK_URL worker.");
-    done(p, "assembly", `Sent ${completed.length} clips to the assembly worker.`);
-    finishAssembly(p, completed.reduce((s, x) => s + x.seconds, 0));
-    return;
-  }
-
   if (completed.length === 1) {
     p.finalVideoUrl = completed[0].videoUrl;
     p.assembled = true;
@@ -304,7 +296,7 @@ async function runAssembly(p: Production) {
   fallbackToIndividualClips(
     p,
     completed,
-    "No merge backend available (set FAL_KEY or ASSEMBLY_WEBHOOK_URL)."
+    "No merge backend available (set FAL_KEY)."
   );
 }
 

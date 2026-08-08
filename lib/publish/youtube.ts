@@ -56,7 +56,9 @@ export async function uploadShort(input: UploadInput): Promise<{ videoId: string
       categoryId: "26", // Howto & Style
     },
     status: {
-      privacyStatus: cleanEnv("YOUTUBE_PRIVACY") ?? "public",
+      // Safe default for a newly connected channel. Switch to public only
+      // after the creator has verified the result and the API project audit.
+      privacyStatus: cleanEnv("YOUTUBE_PRIVACY") ?? "private",
       selfDeclaredMadeForKids: false,
     },
   };
