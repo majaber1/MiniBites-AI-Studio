@@ -1,4 +1,5 @@
 import type { VideoProvider } from "./types";
+import type { ProviderCapabilities } from "./types";
 import { FalProvider } from "./fal";
 import { WanSelfHostedProvider } from "./wan";
 import { MockProvider } from "./mock";
@@ -29,6 +30,7 @@ export interface ProviderOption {
   isMock: boolean;
   hint: string;
   isDefault: boolean;
+  capabilities: ProviderCapabilities;
 }
 
 /** Options for the dashboard provider selector, with real configured state. */
@@ -43,6 +45,7 @@ export function listProviderOptions(): ProviderOption[] {
       isMock: prov.isMock,
       hint: prov.configurationHint,
       isDefault: id === def,
+      capabilities: prov.capabilities,
     };
   });
 }

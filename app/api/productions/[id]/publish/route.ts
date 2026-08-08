@@ -18,9 +18,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (denied) return denied;
   const { id } = await ctx.params;
   const store = getStore();
-  const p = await store.getProduction(id);
-  if (!p || p.ownerKey !== ownerKey(req)) return Response.json({ error: "Production not found." }, { status: 404 });
-  if (!p.approved) return Response.json({ error: "Approve the production first (manual approval is required)." }, { status: 400 });
+  const lockToken = await store.acquireLock(`publish:${id}`, 60);
+  if (!lockToken) return Response.json({ error: "Publishing is already in progress. No second upload was started." }, { status: 409 });
+  try {
+    const p = await store.getProduction(id);
+    if (!p || p.ownerKey !== ownerKey(req)) return Response.json({ error: "Production not found." }, { status: 404 });
+    if (!p.approved) return Response.json({ error: "Approve the production first (manual approval is required)." }, { status: 400 });
 
   const tiktokReady = Boolean(cleanEnv("TIKTOK_CLIENT_KEY") && cleanEnv("TIKTOK_CLIENT_SECRET") && cleanEnv("TIKTOK_ACCESS_TOKEN"));
 
@@ -72,11 +75,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (published) p.status = "completed";
   p.updatedAt = new Date().toISOString();
   await store.saveProduction(p);
-  return Response.json({
-    production: p,
-    published,
-    note: published
-      ? "Published entries were confirmed by the platform API."
-      : "No video was published yet. See each platform's status for the required action.",
-  });
+    return Response.json({
+      production: p,
+      published,
+      note: published
+        ? "Published entries were confirmed by the platform API."
+        : "No video was published yet. See each platform's status for the required action.",
+    });
+  } finally {
+    await store.releaseLock(`publish:${id}`, lockToken);
+  }
 }

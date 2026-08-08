@@ -2,7 +2,7 @@ export default function StatusBadge({ status }: { status: string }) {
   const cls =
     ["running", "generating", "in_queue", "submitted", "planning", "review", "assembling"].includes(status)
       ? "b-run"
-      : ["done", "completed", "approved", "published", "ready"].includes(status)
+      : ["done", "completed", "approved", "published", "ready", "planned"].includes(status)
         ? "b-done"
         : ["failed", "rejected", "cancelled", "not_connected"].includes(status)
           ? "b-fail"

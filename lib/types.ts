@@ -51,12 +51,17 @@ export interface Shot {
   videoUrl?: string;
   error?: string;
   attempts: number;
+  estimatedCostUsd?: number;
 }
 
 export type ProviderChoice = "fal" | "wan" | "mock" | "google";
+export type CreativeStyle = "realistic" | "cinematic" | "cozy" | "luxury" | "street" | "traditional" | "playful" | "macro" | "workshop" | "asmr";
+export type StoryMode = "satisfying" | "educational" | "funny" | "cinematic" | "asmr" | "luxury" | "viral_hook";
+export type DurationPreset = "quick" | "standard" | "extended";
 
 export type ProductionStatus =
   | "planning"
+  | "planned"
   | "generating"
   | "review"
   | "assembling"
@@ -76,6 +81,10 @@ export interface PublishState {
 export interface Production {
   id: string;
   dish: string;
+  description?: string;
+  style: CreativeStyle;
+  storyMode: StoryMode;
+  durationPreset: DurationPreset;
   language: "en" | "ar";
   createdAt: string;
   updatedAt: string;
@@ -86,6 +95,15 @@ export interface Production {
   planSource: "llm" | "template";
   recipeSummary?: string;
   miniatureBrief?: string;
+  visualBible?: {
+    environment: string;
+    scale: string;
+    lighting: string;
+    camera: string;
+    palette: string;
+    hands: string;
+    props: string;
+  };
   agents: AgentState[];
   shots: Shot[];
   finalVideoUrl?: string;
@@ -101,6 +119,12 @@ export interface Production {
   publish: PublishState[];
   error?: string;
   ownerKey: string; // hashed access identity (never a secret)
+  usage: {
+    submittedShots: number;
+    completedShots: number;
+    failedShots: number;
+    estimatedCostUsd: number | null;
+  };
 }
 
 export interface IntegrationStatus {

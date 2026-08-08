@@ -5,12 +5,15 @@ import { readFileSync } from "node:fs";
 process.env.VIDEO_PROVIDER = "mock";
 
 test("template plan produces a valid 30-45s shot list", async () => {
-  const { templatePlan } = await import("../lib/llm.ts");
+  const { templatePlan, validateShotPlan } = await import("../lib/llm.ts");
   const plan = templatePlan("Omelette");
   assert.ok(plan.shots.length >= 6 && plan.shots.length <= 9, "6-9 shots");
   const total = plan.shots.reduce((s, x) => s + x.seconds, 0);
   assert.ok(total >= 30 && total <= 45, `total ${total}s within 30-45`);
   assert.ok(plan.hashtags.length > 0);
+  assert.deepEqual(validateShotPlan(plan), plan);
+  assert.throws(() => validateShotPlan({ ...plan, shots: plan.shots.slice(0, 2) }), /6–9 shots/);
+  assert.throws(() => validateShotPlan({ ...plan, title: "" }), /title/);
 });
 
 test("mock provider is clearly labeled and completes a lifecycle", async () => {
@@ -23,11 +26,19 @@ test("mock provider is clearly labeled and completes a lifecycle", async () => {
   assert.ok(["in_queue", "generating", "completed"].includes(st.state));
 });
 
-test("production pipeline plans, generates (mock) and never fakes publish", async () => {
-  const { createProduction, advanceProduction } = await import("../lib/agents/pipeline.ts");
+test("production pipeline requires creator confirmation, generates (mock) and never fakes publish", async () => {
+  const { createProduction, advanceProduction, reviseShotPlan, startGeneration } = await import("../lib/agents/pipeline.ts");
   let prod = createProduction("Omelette", "en", "test-owner");
   assert.equal(prod.status, "planning");
   prod = await advanceProduction(prod);
+  assert.equal(prod.status, "planned", "planning must stop before paid generation");
+  assert.equal(prod.usage.submittedShots, 0, "planning cannot submit a paid shot");
+  const reordered = [...prod.shots].reverse().map(({ id, seconds, action, camera, sound }) => ({ id, seconds, action, camera, sound }));
+  const previousLastAction = prod.shots.at(-1).action;
+  prod = await reviseShotPlan(prod, reordered);
+  assert.equal(prod.shots[0].action, previousLastAction, "creator can reorder the plan before generation");
+  await assert.rejects(() => reviseShotPlan(prod, reordered.slice(0, 2)), /3 and 9 shots/);
+  prod = await startGeneration(prod);
   assert.equal(prod.status, "generating");
   assert.ok(prod.shots.length >= 6);
   // advance until terminal (mock completes shots after ~15s wall-clock;

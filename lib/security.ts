@@ -6,23 +6,30 @@
 // ---------------------------------------------------------------------------
 import { createHmac, timingSafeEqual } from "crypto";
 import { getStore } from "./store";
+import { cleanEnv } from "./env";
 
 const COOKIE = "mb_session";
+const SESSION_SECONDS = 60 * 60 * 24 * 7;
 
 function secret(): string {
-  return process.env.SESSION_SECRET || process.env.APP_ACCESS_PASSWORD || "";
+  return cleanEnv("SESSION_SECRET") ?? "";
 }
 
-export function signSession(): string {
-  return createHmac("sha256", secret()).update("minibites-session-v1").digest("hex");
+function signature(payload: string): string {
+  return createHmac("sha256", secret()).update(payload).digest("base64url");
+}
+
+export function signSession(expiresAt = Math.floor(Date.now() / 1000) + SESSION_SECONDS): string {
+  const payload = `v1.${expiresAt}`;
+  return `${payload}.${signature(payload)}`;
 }
 
 export function passwordConfigured(): boolean {
-  return Boolean(process.env.APP_ACCESS_PASSWORD);
+  return Boolean(cleanEnv("APP_ACCESS_PASSWORD") && cleanEnv("SESSION_SECRET"));
 }
 
 export function verifyPassword(candidate: string): boolean {
-  const expected = process.env.APP_ACCESS_PASSWORD ?? "";
+  const expected = cleanEnv("APP_ACCESS_PASSWORD") ?? "";
   if (!expected) return false;
   const a = Buffer.from(candidate);
   const b = Buffer.from(expected);
@@ -35,14 +42,23 @@ export function isAuthed(req: Request): boolean {
   const match = cookies.split(/;\s*/).find((c) => c.startsWith(`${COOKIE}=`));
   if (!match) return false;
   const value = match.slice(COOKIE.length + 1);
-  const expected = signSession();
-  const a = Buffer.from(value);
+  const [version, expiresRaw, suppliedSignature] = value.split(".");
+  const expiresAt = Number(expiresRaw);
+  if (version !== "v1" || !Number.isSafeInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) return false;
+  const expected = signature(`${version}.${expiresAt}`);
+  const a = Buffer.from(suppliedSignature ?? "");
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
 export function sessionCookie(): string {
-  return `${COOKIE}=${signSession()}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`;
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  return `${COOKIE}=${signSession()}; Path=/; HttpOnly${secure}; SameSite=Lax; Max-Age=${SESSION_SECONDS}`;
+}
+
+export function clearSessionCookie(): string {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  return `${COOKIE}=; Path=/; HttpOnly${secure}; SameSite=Lax; Max-Age=0`;
 }
 
 /** Stable non-secret identity for scoping productions and limits. */
@@ -72,7 +88,7 @@ export function requireAuth(req: Request): Response | null {
     return Response.json(
       {
         error:
-          "Generation is locked: set APP_ACCESS_PASSWORD (and SESSION_SECRET) in the server environment. This prevents unlimited anonymous video generation.",
+          "Studio access is not configured. Add APP_ACCESS_PASSWORD and SESSION_SECRET, then redeploy.",
       },
       { status: 503 }
     );

@@ -10,6 +10,7 @@ import type { ProviderShotStatus, ShotInput, ShotResult, VideoProvider } from ".
 export class FalProvider implements VideoProvider {
   readonly isMock = false;
   readonly configurationHint = "Set FAL_KEY (and optionally FAL_MODEL_ID) in server environment variables.";
+  readonly capabilities = { video: true as const, imageReference: false, nativeAudio: false, negativePrompt: true, aspectRatios: ["9:16"] as const, minSeconds: 3, maxSeconds: 8 };
   private key = cleanEnv("FAL_KEY") ?? "";
   private model = cleanEnv("FAL_MODEL_ID") ?? "fal-ai/wan/v2.2-a14b/text-to-video";
   /**
@@ -27,6 +28,10 @@ export class FalProvider implements VideoProvider {
   get configured() {
     return Boolean(this.key);
   }
+  estimateCostUsd(input: ShotInput) {
+    const perSecond = Number(cleanEnv("FAL_ESTIMATED_COST_PER_SECOND_USD"));
+    return Number.isFinite(perSecond) && perSecond >= 0 ? perSecond * input.seconds : null;
+  }
 
   private async req(path: string, init?: RequestInit) {
     const res = await fetch(`https://queue.fal.run/${path}`, {
@@ -39,8 +44,7 @@ export class FalProvider implements VideoProvider {
       cache: "no-store",
     });
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new Error(`fal.ai HTTP ${res.status}: ${body.slice(0, 300)}`);
+      throw new Error(`fal.ai request failed (HTTP ${res.status}).`);
     }
     return res.json();
   }

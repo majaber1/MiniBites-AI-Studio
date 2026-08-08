@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import LogoutButton from "@/components/LogoutButton";
 import "./globals.css";
+import "./creator.css";
 
 export const metadata: Metadata = {
   title: "MiniBites Studio — Tiny food, big stories",
@@ -28,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link className="link" href="/studio">Creator Studio</Link>
             <Link className="link" href="/library">Library</Link>
             <Link className="link" href="/integrations">Integrations</Link>
+            <LogoutButton />
             <Link className="nav-cta" href="/studio">Create</Link>
           </div>
         </nav>

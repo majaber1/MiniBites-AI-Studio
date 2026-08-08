@@ -10,6 +10,8 @@ export class MockProvider implements VideoProvider {
   readonly name = "MOCK (testing only — not real video)";
   readonly configured = true;
   readonly configurationHint = "Set VIDEO_PROVIDER=fal or VIDEO_PROVIDER=wan for real generation.";
+  readonly capabilities = { video: true as const, imageReference: false, nativeAudio: false, negativePrompt: true, aspectRatios: ["9:16"] as const, minSeconds: 3, maxSeconds: 8 };
+  estimateCostUsd() { return 0; }
 
   async submitShot(_input: ShotInput) {
     return { providerJobId: `mock-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}` };

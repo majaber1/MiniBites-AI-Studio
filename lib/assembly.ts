@@ -26,8 +26,7 @@ async function req(path: string, init?: RequestInit) {
     cache: "no-store",
   });
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`fal ffmpeg HTTP ${res.status}: ${body.slice(0, 300)}`);
+    throw new Error(`fal ffmpeg request failed (HTTP ${res.status}).`);
   }
   return res.json();
 }

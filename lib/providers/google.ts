@@ -24,8 +24,7 @@ function gHeaders() {
 async function gFetch(url: string, init?: RequestInit) {
   const res = await fetch(url, { ...init, headers: { ...gHeaders(), ...(init?.headers ?? {}) }, cache: "no-store" });
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`Google API HTTP ${res.status}: ${body.slice(0, 300)}`);
+    throw new Error(`Google video request failed (HTTP ${res.status}).`);
   }
   return res;
 }
@@ -74,8 +73,7 @@ async function uploadToFalStorage(bytes: Uint8Array, fileName: string, contentTy
     cache: "no-store",
   });
   if (!initiate.ok) {
-    const body = await initiate.text().catch(() => "");
-    throw new Error(`fal storage initiate HTTP ${initiate.status}: ${body.slice(0, 200)}`);
+    throw new Error(`Video storage request failed (HTTP ${initiate.status}).`);
   }
   const { upload_url, file_url } = (await initiate.json()) as { upload_url: string; file_url: string };
   const put = await fetch(upload_url, { method: "PUT", headers: { "Content-Type": contentType }, body: bytes as unknown as BodyInit });
@@ -85,6 +83,7 @@ async function uploadToFalStorage(bytes: Uint8Array, fileName: string, contentTy
 
 export class GoogleVeoProvider implements VideoProvider {
   readonly isMock = false;
+  readonly capabilities = { video: true as const, imageReference: true, nativeAudio: true, negativePrompt: true, aspectRatios: ["9:16"] as const, minSeconds: 3, maxSeconds: 8 };
   readonly configurationHint =
     "Set GEMINI_API_KEY (paid tier — Veo access) and FAL_KEY (clip hosting + merge). Optional: GOOGLE_VIDEO_MODEL, GOOGLE_IMAGE_MODEL.";
   private videoModel = cleanEnv("GOOGLE_VIDEO_MODEL") ?? "veo-3.1-fast-generate-preview";
@@ -93,6 +92,10 @@ export class GoogleVeoProvider implements VideoProvider {
   }
   get configured() {
     return Boolean(cleanEnv("GEMINI_API_KEY") && cleanEnv("FAL_KEY"));
+  }
+  estimateCostUsd(input: ShotInput) {
+    const perSecond = Number(cleanEnv("GOOGLE_ESTIMATED_COST_PER_SECOND_USD"));
+    return Number.isFinite(perSecond) && perSecond >= 0 ? perSecond * input.seconds : null;
   }
 
   async submitShot(input: ShotInput) {

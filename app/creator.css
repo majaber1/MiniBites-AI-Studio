@@ -1,0 +1,107 @@
+.production-grid {
+  grid-template-columns: 1fr;
+}
+
+.advanced-panel {
+  order: 2;
+}
+
+.advanced-panel summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.advanced-panel[open] summary {
+  margin-bottom: 14px;
+}
+
+.progress-copy {
+  color: var(--violet);
+  font-weight: 700;
+  margin: 10px 0;
+}
+
+.production-grid > .card:not(.advanced-panel) {
+  order: 1;
+}
+
+.plan-ready {
+  align-items: center;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 1fr auto;
+  margin-top: 14px;
+}
+
+.plan-ready span {
+  grid-column: 1;
+}
+
+.plan-ready button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+@media (max-width: 600px) {
+  .plan-ready {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-ready button {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+.shot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.shot-actions button {
+  min-height: 38px;
+  padding: 7px 10px;
+}
+
+.add-shot {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.add-shot > div,
+.inline-shot-editor > div {
+  display: flex;
+  gap: 8px;
+}
+
+.add-shot input {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-shot label,
+.inline-shot-editor label {
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.inline-shot-editor {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.inline-shot-editor textarea {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: inherit;
+  min-height: 76px;
+  padding: 10px;
+  resize: vertical;
+  width: 100%;
+}

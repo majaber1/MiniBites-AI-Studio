@@ -8,7 +8,7 @@
 // endpoint, which both reports and advances real state. A production
 // therefore survives refreshes and restarts (with a durable store).
 // ---------------------------------------------------------------------------
-import type { AgentId, AgentState, Production, ProviderChoice, Shot } from "../types";
+import type { AgentId, AgentState, CreativeStyle, DurationPreset, Production, ProviderChoice, Shot, StoryMode } from "../types";
 import { getVideoProvider } from "../providers";
 import { createShotPlan } from "../llm";
 import { getStore } from "../store";
@@ -31,6 +31,26 @@ const STYLE_PROMPT =
   "Ultra-realistic macro food videography. Real adult human hands cooking with real working dollhouse-scale (1:12) kitchen tools and real edible ingredients in tiny quantities. Continuous physical cooking motion. Macro close-up, shallow depth of field, soft natural kitchen light, vertical 9:16.";
 const NEGATIVE_PROMPT =
   "cartoon, animation, illustration, CGI characters, toy figurines, miniature people, dolls with faces, normal-size cookware, still image, slideshow, ken burns, text, watermark, logo, deformed hands, extra fingers";
+
+export interface CreationOptions {
+  description?: string;
+  style?: CreativeStyle;
+  storyMode?: StoryMode;
+  durationPreset?: DurationPreset;
+}
+
+const STYLE_DETAILS: Record<CreativeStyle, string> = {
+  realistic: "natural documentary food realism",
+  cinematic: "cinematic contrast, elegant camera motion, premium food commercial",
+  cozy: "warm cozy kitchen, soft daylight, inviting textures",
+  luxury: "refined plating, premium materials, restrained golden highlights",
+  street: "energetic street-food counter, tactile preparation, lively warmth",
+  traditional: "authentic regional tools, ingredients, serving style and respectful details",
+  playful: "bright playful composition while remaining photorealistic and food-led",
+  macro: "extreme macro texture study, precise shallow depth of field",
+  workshop: "miniature culinary workshop, visible functional tiny tools",
+  asmr: "slow satisfying actions with close cooking sound emphasis",
+};
 
 export function initAgents(): AgentState[] {
   return AGENT_DEFS.map((a) => ({ id: a.id, name: a.name, status: "pending", logs: [] }));
@@ -59,12 +79,16 @@ function done(p: Production, id: AgentId, note?: string) {
   if (note) a.note = note;
 }
 
-export function createProduction(dish: string, language: "en" | "ar", ownerKey: string, providerChoice?: ProviderChoice): Production {
+export function createProduction(dish: string, language: "en" | "ar", ownerKey: string, providerChoice?: ProviderChoice, productionId?: string, options: CreationOptions = {}): Production {
   const provider = getVideoProvider(providerChoice);
   const now = new Date().toISOString();
   const p: Production = {
-    id: `mb_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    id: productionId ?? `mb_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
     dish,
+    description: options.description,
+    style: options.style ?? "cinematic",
+    storyMode: options.storyMode ?? "satisfying",
+    durationPreset: options.durationPreset ?? "standard",
     language,
     createdAt: now,
     updatedAt: now,
@@ -81,6 +105,16 @@ export function createProduction(dish: string, language: "en" | "ar", ownerKey: 
       { platform: "tiktok", status: "not_connected", requiredAction: "Connect an approved TikTok developer app (see Integrations)." },
     ],
     ownerKey,
+    usage: { submittedShots: 0, completedShots: 0, failedShots: 0, estimatedCostUsd: 0 },
+    visualBible: {
+      environment: options.style === "traditional" ? "authentic miniature regional kitchen" : "consistent premium miniature kitchen",
+      scale: "1:12 working kitchen and tools; bite-size edible ingredients",
+      lighting: options.style === "cozy" ? "warm soft window light" : "soft controlled food-studio light",
+      camera: STYLE_DETAILS[options.style ?? "cinematic"],
+      palette: "warm cream, tomato, fresh green and natural food colors",
+      hands: "same pair of clean adult hands throughout; no extra fingers",
+      props: "same stove, steel pan, board, utensils and serving plate across every shot",
+    },
   };
   start(p, "orchestrator", `Production accepted for “${dish}”.`);
   log(p, "orchestrator", `Provider: ${provider.name}${provider.isMock ? " — MOCK, not real video" : ""}`);
@@ -99,7 +133,13 @@ export async function advanceProduction(p: Production): Promise<Production> {
       start(p, "recipe");
       start(p, "miniature_director");
       start(p, "shot_director");
-      const { plan, source } = await createShotPlan(p.dish, p.language);
+      const { plan, source } = await createShotPlan(p.dish, p.language, {
+        description: p.description,
+        style: p.style,
+        storyMode: p.storyMode,
+        durationPreset: p.durationPreset,
+        visualBible: p.visualBible,
+      });
       p.planSource = source;
       p.recipeSummary = plan.recipeSummary;
       p.miniatureBrief = plan.miniatureBrief;
@@ -117,7 +157,7 @@ export async function advanceProduction(p: Production): Promise<Production> {
         action: s.action,
         camera: s.camera,
         sound: s.sound,
-        prompt: `${STYLE_PROMPT} Scene: ${s.action}. Camera: ${s.camera}. Dish: real miniature ${p.dish}.`,
+        prompt: `${STYLE_PROMPT} Creative direction: ${STYLE_DETAILS[p.style]}. Story mode: ${p.storyMode}. Visual bible: ${Object.values(p.visualBible ?? {}).join("; ")}. Scene: ${s.action}. Camera: ${s.camera}. Dish: real miniature ${p.dish}.`,
         negativePrompt: NEGATIVE_PROMPT,
         status: "planned",
         attempts: 0,
@@ -129,9 +169,8 @@ export async function advanceProduction(p: Production): Promise<Production> {
         agent(p, "video").status = "failed";
         agent(p, "video").note = p.error;
       } else {
-        p.status = "generating";
-        start(p, "video");
-        log(p, "video", "Starting shot generation.");
+        p.status = "planned";
+        agent(p, "video").note = "Shot plan ready. Waiting for the creator to start paid generation.";
       }
     } else if (p.status === "generating") {
       await advanceGeneration(p);
@@ -146,6 +185,55 @@ export async function advanceProduction(p: Production): Promise<Production> {
   }
   p.updatedAt = new Date().toISOString();
   await store.saveProduction(p);
+  return p;
+}
+
+export async function startGeneration(p: Production): Promise<Production> {
+  if (p.status !== "planned") throw new Error("Only a reviewed shot plan can start generation.");
+  const provider = getVideoProvider(p.providerChoice);
+  if (!provider.configured) throw new Error("The selected video engine is not configured.");
+  if (p.shots.length < 1 || p.shots.some((shot) => shot.status !== "planned")) throw new Error("The shot plan is not ready for generation.");
+  p.status = "generating";
+  start(p, "video");
+  log(p, "video", "Creator confirmed the shot plan and started generation.");
+  p.updatedAt = new Date().toISOString();
+  await getStore().saveProduction(p);
+  return p;
+}
+
+export interface ShotPlanEdit { id?: string; seconds: number; action: string; camera: string; sound: string }
+
+export async function reviseShotPlan(p: Production, edits: ShotPlanEdit[]): Promise<Production> {
+  if (p.status !== "planned") throw new Error("Shots can only be edited before generation starts.");
+  if (!Array.isArray(edits) || edits.length < 3 || edits.length > 9) throw new Error("Keep between 3 and 9 shots.");
+  const clean = (value: unknown, label: string, max: number) => {
+    if (typeof value !== "string") throw new Error(`${label} is required.`);
+    const result = value.replace(/[<>\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim();
+    if (!result || result.length > max) throw new Error(`${label} is empty or too long.`);
+    return result;
+  };
+  p.shots = edits.map((edit, index) => {
+    const seconds = Math.round(Number(edit.seconds));
+    if (!Number.isFinite(seconds) || seconds < 3 || seconds > 8) throw new Error(`Shot ${index + 1} must be 3–8 seconds.`);
+    const action = clean(edit.action, `Shot ${index + 1} action`, 400);
+    const camera = clean(edit.camera, `Shot ${index + 1} camera`, 200);
+    const sound = clean(edit.sound, `Shot ${index + 1} sound`, 160);
+    return {
+      id: edit.id && /^shot_[a-zA-Z0-9_-]+$/.test(edit.id) ? edit.id : `shot_${Date.now().toString(36)}_${index + 1}`,
+      index: index + 1,
+      seconds,
+      action,
+      camera,
+      sound,
+      prompt: `${STYLE_PROMPT} Creative direction: ${STYLE_DETAILS[p.style]}. Story mode: ${p.storyMode}. Visual bible: ${Object.values(p.visualBible ?? {}).join("; ")}. Scene: ${action}. Camera: ${camera}. Dish: real miniature ${p.dish}.`,
+      negativePrompt: NEGATIVE_PROMPT,
+      status: "planned" as const,
+      attempts: 0,
+    };
+  });
+  agent(p, "shot_director").note = `${p.shots.length} creator-reviewed shots`;
+  p.updatedAt = new Date().toISOString();
+  await getStore().saveProduction(p);
   return p;
 }
 
@@ -170,10 +258,14 @@ async function advanceGeneration(p: Production) {
         shot.status = "completed";
         shot.videoUrl = result.videoUrl;
         if (result.resolution) p.resolution = result.resolution;
+        p.usage ??= { submittedShots: 0, completedShots: 0, failedShots: 0, estimatedCostUsd: null };
+        p.usage.completedShots += 1;
         log(p, "video", `Shot ${shot.index} completed.`);
       } else {
         shot.status = "failed";
         shot.error = st.error;
+        p.usage ??= { submittedShots: 0, completedShots: 0, failedShots: 0, estimatedCostUsd: null };
+        p.usage.failedShots += 1;
         log(p, "video", `Shot ${shot.index} failed: ${st.error}`);
       }
       if (st.logs?.length) {
@@ -188,15 +280,23 @@ async function advanceGeneration(p: Production) {
   if (active < MAX_CONCURRENT) {
     const next = p.shots.find((s) => s.status === "planned");
     if (next) {
-      const { providerJobId } = await provider.submitShot({
+      const input = {
         prompt: next.prompt,
         negativePrompt: next.negativePrompt,
         seconds: next.seconds,
-        aspectRatio: "9:16",
-      });
+        aspectRatio: "9:16" as const,
+      };
+      const estimatedCost = provider.estimateCostUsd(input);
+      const { providerJobId } = await provider.submitShot(input);
       next.providerJobId = providerJobId;
       next.status = "submitted";
       next.attempts += 1;
+      next.estimatedCostUsd = estimatedCost ?? undefined;
+      p.usage ??= { submittedShots: 0, completedShots: 0, failedShots: 0, estimatedCostUsd: null };
+      p.usage.submittedShots += 1;
+      p.usage.estimatedCostUsd = estimatedCost === null || p.usage.estimatedCostUsd === null
+        ? null
+        : p.usage.estimatedCostUsd + estimatedCost;
       log(p, "video", `Shot ${next.index} submitted (job ${providerJobId.slice(0, 12)}…).`);
     }
   }

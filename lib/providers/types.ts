@@ -23,12 +23,24 @@ export interface ShotResult {
   resolution?: string;
 }
 
+export interface ProviderCapabilities {
+  video: true;
+  imageReference: boolean;
+  nativeAudio: boolean;
+  negativePrompt: boolean;
+  aspectRatios: readonly string[];
+  minSeconds: number;
+  maxSeconds: number;
+}
+
 export interface VideoProvider {
   readonly name: string;
   /** True only for the testing provider. The UI must label mock output. */
   readonly isMock: boolean;
   readonly configured: boolean;
   readonly configurationHint: string;
+  readonly capabilities: ProviderCapabilities;
+  estimateCostUsd(input: ShotInput): number | null;
   submitShot(input: ShotInput): Promise<{ providerJobId: string }>;
   getShotStatus(providerJobId: string): Promise<ProviderShotStatus>;
   getShotResult(providerJobId: string): Promise<ShotResult>;

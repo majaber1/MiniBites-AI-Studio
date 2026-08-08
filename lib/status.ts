@@ -14,7 +14,7 @@ export function integrationStatuses(): IntegrationStatus[] {
       key: "auth",
       label: "Studio access protection",
       configured: passwordConfigured(),
-      detail: passwordConfigured() ? "Password gate active." : "Set APP_ACCESS_PASSWORD — generation stays locked until you do.",
+      detail: passwordConfigured() ? "Password gate and signed sessions active." : "Set APP_ACCESS_PASSWORD and SESSION_SECRET — generation stays locked until both exist.",
       requiredEnv: ["APP_ACCESS_PASSWORD", "SESSION_SECRET"],
     },
     {

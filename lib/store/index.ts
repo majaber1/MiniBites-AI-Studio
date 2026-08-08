@@ -17,8 +17,8 @@ export interface Store {
   saveProduction(p: Production): Promise<void>;
   listProductions(ownerKey: string): Promise<Production[]>;
   incrCounter(key: string, ttlSeconds: number): Promise<number>;
-  acquireLock(key: string, ttlSeconds: number): Promise<boolean>;
-  releaseLock(key: string): Promise<void>;
+  acquireLock(key: string, ttlSeconds: number): Promise<string | null>;
+  releaseLock(key: string, token: string): Promise<void>;
 }
 
 declare global {

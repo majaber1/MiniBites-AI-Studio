@@ -7,7 +7,7 @@ export class MemoryStore implements Store {
   readonly name = "memory (non-durable — configure Upstash Redis for production)";
   private productions = new Map<string, Production>();
   private counters = new Map<string, { n: number; exp: number }>();
-  private locks = new Map<string, number>();
+  private locks = new Map<string, { token: string; exp: number }>();
 
   async getProduction(id: string) {
     return this.productions.get(id) ?? null;
@@ -32,12 +32,13 @@ export class MemoryStore implements Store {
   }
   async acquireLock(key: string, ttlSeconds: number) {
     const now = Date.now();
-    const expiry = this.locks.get(key) ?? 0;
-    if (expiry > now) return false;
-    this.locks.set(key, now + ttlSeconds * 1000);
-    return true;
+    const current = this.locks.get(key);
+    if (current && current.exp > now) return null;
+    const token = crypto.randomUUID();
+    this.locks.set(key, { token, exp: now + ttlSeconds * 1000 });
+    return token;
   }
-  async releaseLock(key: string) {
-    this.locks.delete(key);
+  async releaseLock(key: string, token: string) {
+    if (this.locks.get(key)?.token === token) this.locks.delete(key);
   }
 }

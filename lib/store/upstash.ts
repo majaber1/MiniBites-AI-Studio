@@ -45,10 +45,11 @@ export class UpstashStore implements Store {
     return n;
   }
   async acquireLock(key: string, ttlSeconds: number) {
-    const result = await this.cmd<string | null>(["SET", `mb:lock:${key}`, "1", "NX", "EX", ttlSeconds]);
-    return result === "OK";
+    const token = crypto.randomUUID();
+    const result = await this.cmd<string | null>(["SET", `mb:lock:${key}`, token, "NX", "EX", ttlSeconds]);
+    return result === "OK" ? token : null;
   }
-  async releaseLock(key: string) {
-    await this.cmd(["DEL", `mb:lock:${key}`]);
+  async releaseLock(key: string, token: string) {
+    await this.cmd(["EVAL", "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end", 1, `mb:lock:${key}`, token]);
   }
 }
