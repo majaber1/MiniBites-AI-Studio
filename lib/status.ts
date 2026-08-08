@@ -45,13 +45,11 @@ export function integrationStatuses(): IntegrationStatus[] {
     {
       key: "assembly",
       label: "Assembly (ffmpeg merge)",
-      configured: Boolean(process.env.ASSEMBLY_WEBHOOK_URL || process.env.FAL_KEY),
-      detail: process.env.ASSEMBLY_WEBHOOK_URL
-        ? "External concat worker connected."
-        : process.env.FAL_KEY
-          ? "fal.ai ffmpeg merge active: shots are concatenated into one vertical MP4 automatically."
-          : "Not set: clips download individually; single-MP4 concat needs FAL_KEY or a worker.",
-      requiredEnv: ["FAL_KEY", "ASSEMBLY_WEBHOOK_URL"],
+      configured: Boolean(process.env.FAL_KEY),
+      detail: process.env.FAL_KEY
+        ? "fal.ai ffmpeg merge active: shots are concatenated into one vertical MP4 automatically."
+        : "Not set: clips download individually; automatic single-MP4 concat needs FAL_KEY.",
+      requiredEnv: ["FAL_KEY"],
     },
     {
       key: "youtube",

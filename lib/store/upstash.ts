@@ -44,4 +44,11 @@ export class UpstashStore implements Store {
     if (n === 1) await this.cmd(["EXPIRE", `mb:ctr:${key}`, ttlSeconds]);
     return n;
   }
+  async acquireLock(key: string, ttlSeconds: number) {
+    const result = await this.cmd<string | null>(["SET", `mb:lock:${key}`, "1", "NX", "EX", ttlSeconds]);
+    return result === "OK";
+  }
+  async releaseLock(key: string) {
+    await this.cmd(["DEL", `mb:lock:${key}`]);
+  }
 }

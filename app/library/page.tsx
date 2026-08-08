@@ -11,6 +11,12 @@ export default function LibraryPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
+  async function copyCaption(p: Production) {
+    const text = `${p.publishCaption ?? `Tiny ${p.dish}, made for real.`}\n\n${(p.publishHashtags ?? ["#miniaturecooking", "#tinyfood", "#asmr"]).join(" ")}`;
+    await navigator.clipboard.writeText(text);
+    setNotice("Caption and hashtags copied. Your social pack is ready.");
+  }
+
   const load = useCallback(async () => {
     try {
       const { productions: list } = await api<{ productions: Production[] }>("/api/productions");
@@ -42,8 +48,9 @@ export default function LibraryPage() {
   return (
     <main className="wrap">
       <section className="hero" style={{ paddingBottom: 8 }}>
-        <h1>Content Library</h1>
-        <p className="lede">Every production, its real status, and its publishing state.</p>
+        <div className="eyebrow">Your finished work</div>
+        <h1>Publish Library</h1>
+        <p className="lede">Review once, then publish or take the ready-to-post pack anywhere.</p>
       </section>
 
       {authStatus !== null && <AccessGate status={authStatus} onUnlocked={load} />}
@@ -78,14 +85,19 @@ export default function LibraryPage() {
                   <>
                     <a href={p.finalVideoUrl} target="_blank" rel="noreferrer"><button className="ghost">Preview</button></a>
                     <a href={p.finalVideoUrl} download><button className="ghost">Download MP4</button></a>
+                    <button className="ghost" onClick={() => copyCaption(p)}>Copy caption</button>
                   </>
                 )}
                 {p.status === "awaiting_approval" && !p.providerIsMock && (
                   <button onClick={() => act(p.id, "/approve")}>Approve</button>
                 )}
                 {(p.status === "approved") && (
-                  <button onClick={() => act(p.id, "/publish")}>Publish now</button>
+                  <button onClick={() => act(p.id, "/publish")}>Publish to YouTube</button>
                 )}
+                {p.finalVideoUrl && !p.providerIsMock && <>
+                  <a href="https://www.tiktok.com/upload" target="_blank" rel="noreferrer"><button className="platform-button tiktok">Open TikTok</button></a>
+                  <a href="https://www.instagram.com/" target="_blank" rel="noreferrer"><button className="platform-button instagram">Open Instagram</button></a>
+                </>}
               </div>
               <div style={{ marginTop: 10 }}>
                 {p.publish.map((pub) => (

@@ -48,7 +48,7 @@ test(".env.example documents every required area and contains no secrets", () =>
   const env = readFileSync(new URL("../.env.example", import.meta.url), "utf8");
   for (const key of [
     "APP_ACCESS_PASSWORD", "SESSION_SECRET", "UPSTASH_REDIS_REST_URL", "VIDEO_PROVIDER", "FAL_KEY",
-    "WAN_VIDEO_ENDPOINT", "YOUTUBE_CLIENT_ID", "TIKTOK_CLIENT_KEY", "MAX_PRODUCTIONS_PER_DAY", "ASSEMBLY_WEBHOOK_URL",
+    "WAN_VIDEO_ENDPOINT", "YOUTUBE_CLIENT_ID", "YOUTUBE_PRIVACY", "TIKTOK_CLIENT_KEY", "MAX_PRODUCTIONS_PER_DAY",
   ]) assert.ok(env.includes(key), `${key} documented`);
   assert.ok(!/=(sk-|key_|ghp_|github_pat_)/.test(env), "no real secrets");
 });

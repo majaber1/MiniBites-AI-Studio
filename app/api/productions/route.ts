@@ -17,7 +17,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const denied = requireAuth(req);
   if (denied) return denied;
-  const limited = (await rateLimit(req, "create", 10, 60)) ?? (await dailyProductionCap(req));
+  const limited = await rateLimit(req, "create", 10, 60);
   if (limited) return Response.json({ error: limited }, { status: 429 });
 
   const body = (await req.json().catch(() => null)) as { dish?: string; language?: string; provider?: string } | null;
@@ -38,6 +38,10 @@ export async function POST(req: Request) {
   if (!chosen.configured) {
     return Response.json({ error: `${chosen.name} is not configured. ${chosen.configurationHint}` }, { status: 400 });
   }
+
+  // Only valid, configured productions consume the daily paid-generation cap.
+  const capped = await dailyProductionCap(req);
+  if (capped) return Response.json({ error: capped }, { status: 429 });
 
   let production = createProduction(dish, language, ownerKey(req), providerChoice);
   await getStore().saveProduction(production);
