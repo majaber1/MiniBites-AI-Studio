@@ -3,8 +3,14 @@ import { useEffect, useState } from "react";
 import StatusBadge from "@/components/StatusBadge";
 import type { IntegrationStatus } from "@/lib/types";
 
+interface EnvironmentEntry { name: string; category: "core" | "provider" | "optional"; configured: boolean; required: boolean }
+
 export default function IntegrationsPage() {
-  const [data, setData] = useState<{ integrations: IntegrationStatus[]; authConfigured: boolean } | null>(null);
+  const [data, setData] = useState<{
+    integrations: IntegrationStatus[];
+    authConfigured: boolean;
+    environment: { productionReady: boolean; entries: EnvironmentEntry[]; missingRequired: string[] };
+  } | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -24,6 +30,16 @@ export default function IntegrationsPage() {
       </section>
       {error && <p className="warn">{error}</p>}
       {data && (
+        <>
+        <div className={data.environment.productionReady ? "note" : "warn"} style={{ marginBottom: 20 }}>
+          <strong>{data.environment.productionReady ? "Production environment ready" : "Production environment needs attention"}</strong>
+          <div style={{ marginTop: 6 }}>
+            {data.environment.productionReady
+              ? "All required core and selected-provider variables are configured."
+              : `Missing: ${data.environment.missingRequired.join(", ") || "select a real video provider"}.`}
+            {" "}Only names and configured/not-configured flags are shown; secret values never reach this page.
+          </div>
+        </div>
         <table>
           <thead>
             <tr><th>Integration</th><th>Status</th><th>Detail</th><th>Environment variables</th></tr>
@@ -39,6 +55,7 @@ export default function IntegrationsPage() {
             ))}
           </tbody>
         </table>
+        </>
       )}
       <div className="note" style={{ marginTop: 20 }}>
         Configure these in Vercel → Project → Settings → Environment Variables, then redeploy. The full list

@@ -13,11 +13,13 @@ export class WanSelfHostedProvider implements VideoProvider {
   readonly isMock = false;
   readonly name = "Wan (self-hosted GPU worker)";
   readonly configurationHint = "Set WAN_VIDEO_ENDPOINT (and optional WAN_VIDEO_TOKEN) to your GPU worker URL.";
+  readonly capabilities = { video: true as const, imageReference: false, nativeAudio: false, negativePrompt: true, aspectRatios: ["9:16"] as const, minSeconds: 3, maxSeconds: 8 };
   private endpoint = cleanEnv("WAN_VIDEO_ENDPOINT") ?? "";
   private token = cleanEnv("WAN_VIDEO_TOKEN") ?? "";
   get configured() {
     return Boolean(this.endpoint);
   }
+  estimateCostUsd() { return null; }
 
   private headers() {
     return {

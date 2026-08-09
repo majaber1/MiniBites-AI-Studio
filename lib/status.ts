@@ -3,6 +3,7 @@ import { getVideoProvider } from "./providers";
 import { llmConfigured } from "./llm";
 import { getStore } from "./store";
 import { passwordConfigured } from "./security";
+import { durableMediaConfigured } from "./media-storage";
 
 /** Reports only booleans and hints — never values of secrets. */
 export function integrationStatuses(): IntegrationStatus[] {
@@ -14,7 +15,7 @@ export function integrationStatuses(): IntegrationStatus[] {
       key: "auth",
       label: "Studio access protection",
       configured: passwordConfigured(),
-      detail: passwordConfigured() ? "Password gate active." : "Set APP_ACCESS_PASSWORD — generation stays locked until you do.",
+      detail: passwordConfigured() ? "Password gate and signed sessions active." : "Set APP_ACCESS_PASSWORD and SESSION_SECRET — generation stays locked until both exist.",
       requiredEnv: ["APP_ACCESS_PASSWORD", "SESSION_SECRET"],
     },
     {
@@ -50,6 +51,13 @@ export function integrationStatuses(): IntegrationStatus[] {
         ? "fal.ai ffmpeg merge active: shots are concatenated into one vertical MP4 automatically."
         : "Not set: clips download individually; automatic single-MP4 concat needs FAL_KEY.",
       requiredEnv: ["FAL_KEY"],
+    },
+    {
+      key: "media-storage",
+      label: "Durable final-video archive",
+      configured: durableMediaConfigured(),
+      detail: durableMediaConfigured() ? "Vercel Blob is ready to archive final MP4 files." : "Provider URLs can expire. Connect Vercel Blob before long-term production use.",
+      requiredEnv: ["BLOB_READ_WRITE_TOKEN"],
     },
     {
       key: "youtube",

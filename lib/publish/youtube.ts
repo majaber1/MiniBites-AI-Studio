@@ -25,8 +25,7 @@ async function getAccessToken(): Promise<string> {
     cache: "no-store",
   });
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`YouTube OAuth ${res.status}: ${body.slice(0, 300)}`);
+    throw new Error(`YouTube connection failed (HTTP ${res.status}). Reconnect the channel and try again.`);
   }
   const data = (await res.json()) as { access_token?: string };
   if (!data.access_token) throw new Error("YouTube OAuth returned no access token");
@@ -83,8 +82,7 @@ export async function uploadShort(input: UploadInput): Promise<{ videoId: string
     cache: "no-store",
   });
   if (!up.ok) {
-    const errBody = await up.text().catch(() => "");
-    throw new Error(`YouTube upload ${up.status}: ${errBody.slice(0, 300)}`);
+    throw new Error(`YouTube upload failed (HTTP ${up.status}). Your approved video is safe; retry when the connection is ready.`);
   }
   const data = (await up.json()) as { id?: string };
   if (!data.id) throw new Error("YouTube upload returned no video id");
