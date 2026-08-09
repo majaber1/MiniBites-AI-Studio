@@ -6,10 +6,11 @@ A focused production studio for real miniature-cooking vertical videos. V3 turns
 
 1. Deploy to Vercel.
 2. Create an Upstash Redis database for durable jobs.
-3. Add a `FAL_KEY`; it powers video generation and automatic MP4 merging.
+3. Add a fresh `FAL_KEY`; it powers video generation and automatic MP4 merging. Never reuse a key disclosed in chat or logs.
 4. Add `APP_ACCESS_PASSWORD` and a long random `SESSION_SECRET`.
 5. Optionally add Gemini or Anthropic for custom planning. The labeled template planner works without either.
-6. Connect YouTube OAuth when ready. Keep `YOUTUBE_PRIVACY=private` for initial uploads.
+6. Connect Vercel Blob for durable final-MP4 archiving.
+7. Connect YouTube OAuth when ready. Keep `YOUTUBE_PRIVACY=private` for initial uploads.
 
 TikTok Direct Post and public YouTube API publishing require platform review. Until approved, the Library provides the reliable route: download the final MP4, copy the prepared caption, and open TikTok or Instagram.
 
@@ -22,6 +23,7 @@ UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 VIDEO_PROVIDER=fal
 FAL_KEY=
+BLOB_READ_WRITE_TOKEN=
 YOUTUBE_PRIVACY=private
 ```
 
@@ -37,3 +39,9 @@ npm run build
 ```
 
 The mock provider is testing-only and never claims to create a real video.
+
+## Creator flow
+
+`Idea → Style → Plan → Generate → Review each clip → Assemble → Approve → Publish pack`
+
+The Library supports search, status filters, resumable projects, duplication without copying paid media, archive, download and platform-specific copy actions. `/templates` contains editable Saudi/Arab, global and seasonal starting points. `/operations` is deliberately absent from creator navigation and requires a separate `ADMIN_ACCESS_PASSWORD`.

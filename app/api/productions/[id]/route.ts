@@ -20,7 +20,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   let p = await load(req, id);
   if (!p) return Response.json({ error: "Production not found." }, { status: 404 });
   const advance = new URL(req.url).searchParams.get("advance") === "1";
-  const active = ["planning", "generating", "review", "assembling"].includes(p.status);
+  const active = ["planning", "generating", "assembling"].includes(p.status);
   if (advance && active) {
     const store = getStore();
     const lockKey = `advance:${id}`;
@@ -30,7 +30,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
         // Reload after acquiring the lock so concurrent polls cannot submit the
         // same paid provider job twice.
         const latest = await load(req, id);
-        if (latest && ["planning", "generating", "review", "assembling"].includes(latest.status)) {
+        if (latest && ["planning", "generating", "assembling"].includes(latest.status)) {
           p = await advanceProduction(latest);
         }
       } finally {

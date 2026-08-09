@@ -36,6 +36,15 @@ export type ShotStatus =
   | "failed"
   | "cancelled";
 
+export interface ShotVersion {
+  version: number;
+  videoUrl: string;
+  prompt: string;
+  providerJobId?: string;
+  createdAt: string;
+  accepted: boolean;
+}
+
 export interface Shot {
   id: string;
   index: number;
@@ -52,6 +61,8 @@ export interface Shot {
   error?: string;
   attempts: number;
   estimatedCostUsd?: number;
+  accepted?: boolean;
+  versions?: ShotVersion[];
 }
 
 export type ProviderChoice = "fal" | "wan" | "mock" | "google";
@@ -66,6 +77,7 @@ export type ProductionStatus =
   | "review"
   | "assembling"
   | "awaiting_approval"
+  | "changes_requested"
   | "approved"
   | "completed"
   | "failed"
@@ -88,6 +100,7 @@ export interface Production {
   language: "en" | "ar";
   createdAt: string;
   updatedAt: string;
+  archivedAt?: string;
   status: ProductionStatus;
   provider: string;
   providerIsMock: boolean;
@@ -107,15 +120,26 @@ export interface Production {
   agents: AgentState[];
   shots: Shot[];
   finalVideoUrl?: string;
+  providerFinalVideoUrl?: string;
+  mediaStorage?: { status: "not_configured" | "archived" | "failed"; provider: "vercel_blob" | "provider"; archivedAt?: string; note?: string };
   assembled?: boolean; // true only when a real merged single MP4 exists
   assemblyJobId?: string;
   publishTitle?: string;
   publishCaption?: string;
   publishHashtags?: string[];
+  socialPack?: {
+    tiktokCaption: string;
+    instagramCaption: string;
+    youtubeTitle: string;
+    youtubeDescription: string;
+    hashtags: string[];
+  };
   durationSeconds?: number;
   resolution?: string;
   thumbnailUrl?: string;
   approved: boolean;
+  approvalNote?: string;
+  approvedAt?: string;
   publish: PublishState[];
   error?: string;
   ownerKey: string; // hashed access identity (never a secret)

@@ -12,7 +12,7 @@ export function environmentReport(): { productionReady: boolean; entries: SafeEn
   const groups: Record<EnvironmentCategory, string[]> = {
     core: ["APP_ACCESS_PASSWORD", "SESSION_SECRET", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN", "VIDEO_PROVIDER"],
     provider: ["FAL_KEY", "FAL_MODEL_ID", "GEMINI_API_KEY", "ANTHROPIC_API_KEY", "WAN_VIDEO_ENDPOINT", "WAN_VIDEO_TOKEN"],
-    optional: ["YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_REFRESH_TOKEN", "STORAGE_S3_ENDPOINT", "STORAGE_S3_BUCKET", "STORAGE_S3_ACCESS_KEY_ID", "STORAGE_S3_SECRET_ACCESS_KEY"],
+    optional: ["ADMIN_ACCESS_PASSWORD", "BLOB_READ_WRITE_TOKEN", "YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_REFRESH_TOKEN", "STORAGE_S3_ENDPOINT", "STORAGE_S3_BUCKET", "STORAGE_S3_ACCESS_KEY_ID", "STORAGE_S3_SECRET_ACCESS_KEY"],
   };
   const entries = (Object.entries(groups) as Array<[EnvironmentCategory, string[]]>).flatMap(([category, names]) => names.map((name) => ({ name, category, configured: Boolean(cleanEnv(name)), required: required.has(name) })));
   const missingRequired = entries.filter((entry) => entry.required && !entry.configured).map((entry) => entry.name);

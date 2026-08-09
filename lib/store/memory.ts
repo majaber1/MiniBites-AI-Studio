@@ -20,6 +20,9 @@ export class MemoryStore implements Store {
       .filter((p) => p.ownerKey === ownerKey)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
+  async listAllProductions(limit = 100) {
+    return [...this.productions.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
+  }
   async incrCounter(key: string, ttlSeconds: number) {
     const now = Date.now();
     const cur = this.counters.get(key);

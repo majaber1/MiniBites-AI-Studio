@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 72" role="img" aria-label="MiniBites Studio">
+  <g transform="translate(4 4)"><rect width="64" height="64" rx="18" fill="#ff6b5f"/><circle cx="32" cy="33" r="21" fill="#fffaf5"/><circle cx="32" cy="33" r="15" fill="#f3b52f"/><path d="M27 23.5 43 33 27 42.5Z" fill="#7657ff"/><circle cx="49" cy="17" r="7" fill="#fffaf5"/></g>
+  <text x="82" y="34" fill="#18211d" font-family="Manrope,Arial,sans-serif" font-size="27" font-weight="800">MiniBites</text><text x="84" y="55" fill="#68736d" font-family="Arial,sans-serif" font-size="13" font-weight="700" letter-spacing="3">STUDIO</text>
+</svg>

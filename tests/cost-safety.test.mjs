@@ -5,9 +5,11 @@ process.env.APP_ACCESS_PASSWORD = "cost-test-password";
 process.env.SESSION_SECRET = "cost-test-session-secret";
 process.env.VIDEO_PROVIDER = "mock";
 
-const { signSession } = await import("../lib/security.ts");
+const { ownerKey, signSession } = await import("../lib/security.ts");
 const { MemoryStore } = await import("../lib/store/memory.ts");
 const { POST } = await import("../app/api/productions/route.ts");
+const { POST: retryPOST } = await import("../app/api/productions/[id]/retry/route.ts");
+const { createProduction } = await import("../lib/agents/pipeline.ts");
 
 function create(body) {
   return POST(new Request("https://minibites.test/api/productions", {
@@ -41,3 +43,16 @@ test("a repeated client request returns one production and consumes quota once",
   assert.equal((await globalThis.__minibitesStore.listProductions(a.production.ownerKey)).length, 2);
 });
 
+test("concurrent retry clicks queue a failed shot only once", async () => {
+  const store = new MemoryStore();
+  globalThis.__minibitesStore = store;
+  const session = signSession();
+  const request = () => new Request("https://minibites.test/api/productions/mb_retry_once/retry", { method: "POST", headers: { "content-type": "application/json", cookie: `mb_session=${session}`, "x-forwarded-for": "203.0.113.90" }, body: JSON.stringify({ shotId: "shot_1" }) });
+  const production = createProduction("Kabsa", "en", ownerKey(request()), "mock", "mb_retry_once");
+  production.status = "generating";
+  production.shots = [{ id: "shot_1", index: 1, seconds: 5, action: "Cook", camera: "Macro", sound: "Sizzle", prompt: "prompt", negativePrompt: "negative", status: "failed", attempts: 1, error: "Safe test failure" }];
+  await store.saveProduction(production);
+  const responses = await Promise.all([retryPOST(request(), { params: Promise.resolve({ id: production.id }) }), retryPOST(request(), { params: Promise.resolve({ id: production.id }) })]);
+  assert.deepEqual(responses.map((response) => response.status).sort(), [200, 409]);
+  assert.equal((await store.getProduction(production.id)).shots[0].attempts, 1, "retry queues the next attempt but does not submit or charge yet");
+});

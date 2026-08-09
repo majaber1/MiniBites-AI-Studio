@@ -13,6 +13,7 @@ import { getVideoProvider } from "../providers";
 import { createShotPlan } from "../llm";
 import { getStore } from "../store";
 import { falAssemblyConfigured, getMergeStatus, getMergeResult, submitMerge } from "../assembly";
+import { archiveFinalVideo, durableMediaConfigured } from "../media-storage";
 
 export const AGENT_DEFS: Array<{ id: AgentId; name: string; role: string }> = [
   { id: "orchestrator", name: "Orchestrator", role: "Validates the request and coordinates every stage." },
@@ -257,6 +258,16 @@ async function advanceGeneration(p: Production) {
         const result = await provider.getShotResult(shot.providerJobId);
         shot.status = "completed";
         shot.videoUrl = result.videoUrl;
+        shot.accepted = p.providerIsMock;
+        shot.versions ??= [];
+        shot.versions.push({
+          version: shot.versions.length + 1,
+          videoUrl: result.videoUrl,
+          prompt: shot.prompt,
+          providerJobId: shot.providerJobId,
+          createdAt: new Date().toISOString(),
+          accepted: p.providerIsMock,
+        });
         if (result.resolution) p.resolution = result.resolution;
         p.usage ??= { submittedShots: 0, completedShots: 0, failedShots: 0, estimatedCostUsd: null };
         p.usage.completedShots += 1;
@@ -329,11 +340,39 @@ function runReview(p: Production) {
   } else if (completed.length === 0) {
     p.status = "failed";
     p.error = "No shots completed.";
-  } else {
-    done(p, "quality", "All shots completed. Final visual approval is manual (per publishing policy).");
+  } else if (p.providerIsMock) {
+    done(p, "quality", "Mock lifecycle check completed; no real media exists.");
     p.status = "assembling";
     start(p, "assembly");
+  } else {
+    agent(p, "quality").note = "All clips generated. Waiting for the creator to accept each clip before assembly.";
+    p.status = "review";
   }
+}
+
+export async function setShotAcceptance(p: Production, shotId: string, accepted: boolean): Promise<Production> {
+  if (p.status !== "review" && p.status !== "changes_requested") throw new Error("Clips can only be reviewed after generation finishes.");
+  const shot = p.shots.find((candidate) => candidate.id === shotId);
+  if (!shot || shot.status !== "completed" || !shot.videoUrl) throw new Error("This clip is not ready for review.");
+  shot.accepted = accepted;
+  const current = shot.versions?.at(-1);
+  if (current) current.accepted = accepted;
+  p.updatedAt = new Date().toISOString();
+  await getStore().saveProduction(p);
+  return p;
+}
+
+export async function startAssembly(p: Production): Promise<Production> {
+  if (p.status !== "review" && p.status !== "changes_requested") throw new Error("This project is not ready to assemble.");
+  if (!p.shots.length || p.shots.some((shot) => shot.status !== "completed" || !shot.videoUrl || !shot.accepted)) {
+    throw new Error("Accept every completed clip before creating the final video.");
+  }
+  done(p, "quality", "Every generated clip was accepted by the creator.");
+  p.status = "assembling";
+  start(p, "assembly");
+  p.updatedAt = new Date().toISOString();
+  await getStore().saveProduction(p);
+  return p;
 }
 
 async function runAssembly(p: Production) {
@@ -356,6 +395,7 @@ async function runAssembly(p: Production) {
       if (st.state === "completed") {
         p.finalVideoUrl = await getMergeResult(p.assemblyJobId);
         p.assembled = true;
+        await archiveIfConfigured(p);
         done(p, "assembly", `Merged ${completed.length} clips into one vertical MP4 (fal ffmpeg).`);
         finishAssembly(p, completed.reduce((s, x) => s + x.seconds, 0));
         return;
@@ -372,6 +412,7 @@ async function runAssembly(p: Production) {
   if (completed.length === 1) {
     p.finalVideoUrl = completed[0].videoUrl;
     p.assembled = true;
+    await archiveIfConfigured(p);
     done(p, "assembly", "Single clip production — no merge needed.");
     finishAssembly(p, completed[0].seconds);
     return;
@@ -411,6 +452,15 @@ function fallbackToIndividualClips(p: Production, completed: Shot[], reason: str
 
 function finishAssembly(p: Production, durationSeconds: number) {
   p.durationSeconds = durationSeconds;
+  const caption = p.publishCaption ?? `Tiny ${p.dish}, made for real.`;
+  const hashtags = (p.publishHashtags ?? ["#miniaturecooking", "#tinyfood", "#asmr"]).slice(0, 8);
+  p.socialPack = {
+    tiktokCaption: `${caption}\n\n${hashtags.slice(0, 5).join(" ")}`,
+    instagramCaption: `${caption}\n\n${hashtags.join(" ")}`,
+    youtubeTitle: (p.publishTitle ?? `Miniature ${p.dish} — Tiny Kitchen`).slice(0, 100),
+    youtubeDescription: `${caption}\n\n${hashtags.join(" ")}`,
+    hashtags,
+  };
   p.status = "awaiting_approval";
   start(p, "publishing", "Publishing package prepared. Awaiting manual approval.");
 }
@@ -426,6 +476,84 @@ export async function retryShot(p: Production, shotId: string): Promise<Producti
   p.status = "generating";
   agent(p, "video").status = "running";
   log(p, "video", `Shot ${shot.index} queued for retry (attempt ${shot.attempts + 1}).`);
+  p.updatedAt = new Date().toISOString();
+  await getStore().saveProduction(p);
+  return p;
+}
+
+export async function duplicateProduction(source: Production): Promise<Production> {
+  const duplicate = createProduction(source.dish, source.language, source.ownerKey, source.providerChoice, undefined, {
+    description: source.description,
+    style: source.style,
+    storyMode: source.storyMode,
+    durationPreset: source.durationPreset,
+  });
+  duplicate.status = "planned";
+  duplicate.planSource = source.planSource;
+  duplicate.recipeSummary = source.recipeSummary;
+  duplicate.miniatureBrief = source.miniatureBrief;
+  duplicate.visualBible = source.visualBible ? structuredClone(source.visualBible) : undefined;
+  duplicate.publishTitle = source.publishTitle;
+  duplicate.publishCaption = source.publishCaption;
+  duplicate.publishHashtags = source.publishHashtags ? [...source.publishHashtags] : undefined;
+  duplicate.shots = source.shots.map((shot, index) => ({
+    id: `shot_${index + 1}`,
+    index: index + 1,
+    seconds: shot.seconds,
+    action: shot.action,
+    camera: shot.camera,
+    sound: shot.sound,
+    prompt: shot.prompt,
+    negativePrompt: shot.negativePrompt,
+    status: "planned",
+    attempts: 0,
+  }));
+  for (const id of ["recipe", "miniature_director", "shot_director", "prompt"] as AgentId[]) done(duplicate, id, "Reused from the source project's creator-reviewed plan.");
+  agent(duplicate, "video").note = "No generated media was copied. Review the plan before starting a new paid generation.";
+  duplicate.updatedAt = new Date().toISOString();
+  await getStore().saveProduction(duplicate);
+  return duplicate;
+}
+
+export async function archiveProduction(p: Production): Promise<Production> {
+  if (["planning", "generating", "assembling"].includes(p.status)) throw new Error("Wait for the active job or cancel it before archiving.");
+  p.archivedAt = new Date().toISOString();
+  p.updatedAt = p.archivedAt;
+  await getStore().saveProduction(p);
+  return p;
+}
+
+async function archiveIfConfigured(p: Production) {
+  if (!p.finalVideoUrl || p.providerIsMock) return;
+  p.providerFinalVideoUrl ??= p.finalVideoUrl;
+  if (!durableMediaConfigured()) {
+    p.mediaStorage = { status: "not_configured", provider: "provider", note: "Using the video provider URL. Connect Vercel Blob for a durable archive." };
+    return;
+  }
+  try {
+    p.finalVideoUrl = await archiveFinalVideo(p.finalVideoUrl, p.id);
+    p.mediaStorage = { status: "archived", provider: "vercel_blob", archivedAt: new Date().toISOString() };
+    log(p, "assembly", "Final MP4 archived to durable project storage.");
+  } catch {
+    p.mediaStorage = { status: "failed", provider: "provider", note: "The final MP4 is available from the video provider, but durable archiving needs retry." };
+    log(p, "assembly", "Durable archive failed; provider video remains available.");
+  }
+}
+
+export async function regenerateShot(p: Production, shotId: string): Promise<Production> {
+  if (p.status !== "review" && p.status !== "changes_requested") throw new Error("A completed clip can only be regenerated during review.");
+  const shot = p.shots.find((candidate) => candidate.id === shotId);
+  if (!shot || shot.status !== "completed" || !shot.videoUrl) throw new Error("This clip is not ready to regenerate.");
+  if (shot.attempts >= 3) throw new Error("Retry limit reached for this shot (3).");
+  shot.accepted = false;
+  shot.status = "planned";
+  shot.videoUrl = undefined;
+  shot.error = undefined;
+  shot.providerJobId = undefined;
+  p.status = "generating";
+  agent(p, "video").status = "running";
+  agent(p, "quality").status = "running";
+  log(p, "video", `Creator requested shot ${shot.index} version ${(shot.versions?.length ?? 0) + 1}; the previous clip remains saved.`);
   p.updatedAt = new Date().toISOString();
   await getStore().saveProduction(p);
   return p;

@@ -4,6 +4,7 @@ import { api, ApiError } from "@/components/api";
 import AccessGate from "@/components/AccessGate";
 import StatusBadge from "@/components/StatusBadge";
 import type { CreativeStyle, DurationPreset, Production, StoryMode } from "@/lib/types";
+import { getCreativeTemplate } from "@/lib/templates";
 
 const SUGGESTIONS = ["Mini Saudi Kabsa", "Mini Pizza", "Tiny Kunafa", "Mini Sushi", "Small Pancakes", "Arabic Coffee"];
 const STYLES: Array<{ id: CreativeStyle; label: string; icon: string }> = [
@@ -19,7 +20,7 @@ interface ProviderOption {
   isMock: boolean;
   isDefault: boolean;
 }
-const ACTIVE = ["planning", "generating", "review", "assembling"];
+const ACTIVE = ["planning", "generating", "assembling"];
 
 export default function StudioPage() {
   const [dish, setDish] = useState("");
@@ -57,6 +58,14 @@ export default function StudioPage() {
   }, []);
 
   useEffect(() => {
+    const template = getCreativeTemplate(new URLSearchParams(window.location.search).get("template"));
+    if (template) {
+      setDish(template.dish);
+      setDescription(template.description);
+      setStyle(template.style);
+      setStoryMode(template.storyMode);
+      setDurationPreset(template.durationPreset);
+    }
     fetch("/api/status")
       .then((r) => r.json())
       .then((d) => Array.isArray(d.providers) && setProviderOptions(d.providers))
@@ -105,6 +114,7 @@ export default function StudioPage() {
 
   async function retry(shotId: string) {
     if (!production) return;
+    if (!production.providerIsMock && !window.confirm("Retry this failed clip? A new paid generation may be submitted; completed clips stay safe.")) return;
     try {
       const { production: p } = await api<{ production: Production }>(`/api/productions/${production.id}/retry`, {
         method: "POST",
@@ -115,6 +125,32 @@ export default function StudioPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Retry failed.");
     }
+  }
+
+  async function reviewShot(shotId: string, action: "accept" | "reject" | "regenerate") {
+    if (!production) return;
+    if (action === "regenerate" && !window.confirm("Create a new version of this clip? This uses paid generation credit and keeps the current version in history.")) return;
+    setError("");
+    try {
+      const { production: updated } = await api<{ production: Production }>(`/api/productions/${production.id}/shots`, {
+        method: "POST",
+        body: JSON.stringify({ shotId, action, confirmCost: action === "regenerate" }),
+      });
+      setProduction(updated);
+      if (action === "regenerate") timer.current = setTimeout(() => poll(updated.id), 500);
+    } catch (e) { setError(e instanceof Error ? e.message : "The clip could not be updated."); }
+  }
+
+  async function assemble() {
+    if (!production) return;
+    setBusy(true);
+    setError("");
+    try {
+      const { production: updated } = await api<{ production: Production }>(`/api/productions/${production.id}/assemble`, { method: "POST", body: "{}" });
+      setProduction(updated);
+      timer.current = setTimeout(() => poll(updated.id), 500);
+    } catch (e) { setError(e instanceof Error ? e.message : "The final video could not be started."); }
+    finally { setBusy(false); }
   }
 
   async function generate() {
@@ -189,19 +225,20 @@ export default function StudioPage() {
       {production && (
         <>
           <div className="ruler" aria-hidden />
-          <ProductionView production={production} onCancel={cancel} onRetry={retry} onGenerate={generate} onPlanChange={savePlan} busy={busy} />
+          <ProductionView production={production} onCancel={cancel} onRetry={retry} onGenerate={generate} onReviewShot={reviewShot} onAssemble={assemble} onPlanChange={savePlan} busy={busy} />
         </>
       )}
     </main>
   );
 }
 
-function ProductionView({ production: p, onCancel, onRetry, onGenerate, onPlanChange, busy }: { production: Production; onCancel: () => void; onRetry: (shotId: string) => void; onGenerate: () => void; onPlanChange: (shots: Production["shots"]) => Promise<void>; busy: boolean }) {
+function ProductionView({ production: p, onCancel, onRetry, onGenerate, onReviewShot, onAssemble, onPlanChange, busy }: { production: Production; onCancel: () => void; onRetry: (shotId: string) => void; onGenerate: () => void; onReviewShot: (shotId: string, action: "accept" | "reject" | "regenerate") => void; onAssemble: () => void; onPlanChange: (shots: Production["shots"]) => Promise<void>; busy: boolean }) {
   const active = ACTIVE.includes(p.status);
   const [editingShotId, setEditingShotId] = useState<string | null>(null);
   const [draftAction, setDraftAction] = useState("");
   const [newShotAction, setNewShotAction] = useState("");
   const completedShots = p.shots.filter((shot) => shot.status === "completed").length;
+  const acceptedShots = p.shots.filter((shot) => shot.status === "completed" && shot.accepted).length;
   const progressLabel = p.status === "planning" ? "Preparing your shots" : p.status === "generating" ? `Creating shot ${Math.min(completedShots + 1, p.shots.length || 1)} of ${p.shots.length || "…"}` : p.status === "assembling" ? "Preparing the final video" : p.status === "awaiting_approval" ? "Ready for review" : p.status.replaceAll("_", " ");
   function beginEdit(index: number) {
     const current = p.shots[index];
@@ -262,7 +299,7 @@ function ProductionView({ production: p, onCancel, onRetry, onGenerate, onPlanCh
               {a.note && <p className="dim" style={{ margin: "4px 0 0" }}>{a.note}</p>}
               {a.logs.length > 0 && (
                 <div className="logbox mono" style={{ marginTop: 6 }}>
-                  {a.logs.slice(-6).map((l, i) => <div key={i}>{l}</div>)}
+                  {a.logs.slice(-6).map((line) => <div key={line}>{line}</div>)}
                 </div>
               )}
             </div>
@@ -287,7 +324,14 @@ function ProductionView({ production: p, onCancel, onRetry, onGenerate, onPlanCh
                   {typeof s.queuePosition === "number" && <p className="dim">Queue position: {s.queuePosition}</p>}
                   {s.error && <p className="dim" style={{ color: "var(--coral)" }}>{s.error}</p>}
                   {s.videoUrl && !p.providerIsMock && (
-                    <a href={s.videoUrl} target="_blank" rel="noreferrer"><button className="ghost" style={{ padding: "6px 12px" }}>Preview clip</button></a>
+                    <a className="action-link ghost compact" href={s.videoUrl} target="_blank" rel="noreferrer">Preview clip</a>
+                  )}
+                  {(p.status === "review" || p.status === "changes_requested") && s.status === "completed" && !p.providerIsMock && (
+                    <div className="shot-actions" style={{ marginTop: 8 }}>
+                      <button onClick={() => onReviewShot(s.id, "accept")} disabled={s.accepted}>{s.accepted ? "✓ Accepted" : "Accept clip"}</button>
+                      <button className="ghost" onClick={() => onReviewShot(s.id, "regenerate")}>Regenerate</button>
+                      {(s.versions?.length ?? 0) > 0 && <span className="dim">v{s.versions?.length}</span>}
+                    </div>
                   )}
                   {(s.status === "failed" || s.status === "rejected") && (
                     <button className="ghost" style={{ padding: "6px 12px", marginTop: 6 }} onClick={() => onRetry(s.id)}>
@@ -299,6 +343,7 @@ function ProductionView({ production: p, onCancel, onRetry, onGenerate, onPlanCh
             </div>
           )}
           {p.status === "planned" && p.shots.length < 9 && <div className="add-shot"><label htmlFor="new-shot">Add another shot</label><div><input id="new-shot" value={newShotAction} maxLength={400} onChange={(e) => setNewShotAction(e.target.value)} placeholder="Describe what happens…" /><button className="ghost" disabled={!newShotAction.trim()} onClick={addShot}>+ Add shot</button></div></div>}
+          {(p.status === "review" || p.status === "changes_requested") && !p.providerIsMock && <div className="note" style={{ marginTop: 14 }}><strong>{p.status === "changes_requested" ? "Changes requested" : "Review every clip"}</strong><span>{p.approvalNote ? `${p.approvalNote} · ` : ""}{acceptedShots} of {p.shots.length} accepted. A bad clip can be regenerated without losing the previous version.</span><button onClick={onAssemble} disabled={busy || acceptedShots !== p.shots.length}>{busy ? "Starting…" : "Create final video"}</button></div>}
         </div>
       </div>
 

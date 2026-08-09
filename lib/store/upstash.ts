@@ -29,6 +29,7 @@ export class UpstashStore implements Store {
   async saveProduction(p: Production) {
     await this.cmd(["SET", `mb:prod:${p.id}`, JSON.stringify(p)]);
     await this.cmd(["ZADD", `mb:owner:${p.ownerKey}`, Date.parse(p.createdAt), p.id]);
+    await this.cmd(["ZADD", "mb:all", Date.parse(p.createdAt), p.id]);
   }
   async listProductions(ownerKey: string) {
     const ids = await this.cmd<string[]>(["ZREVRANGE", `mb:owner:${ownerKey}`, 0, 49]);
@@ -36,6 +37,15 @@ export class UpstashStore implements Store {
     for (const id of ids ?? []) {
       const p = await this.getProduction(id);
       if (p) out.push(p);
+    }
+    return out;
+  }
+  async listAllProductions(limit = 100) {
+    const ids = await this.cmd<string[]>(["ZREVRANGE", "mb:all", 0, Math.max(0, Math.min(limit, 200) - 1)]);
+    const out: Production[] = [];
+    for (const id of ids ?? []) {
+      const production = await this.getProduction(id);
+      if (production) out.push(production);
     }
     return out;
   }

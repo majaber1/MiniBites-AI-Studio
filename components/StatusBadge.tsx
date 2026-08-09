@@ -1,6 +1,6 @@
 export default function StatusBadge({ status }: { status: string }) {
   const cls =
-    ["running", "generating", "in_queue", "submitted", "planning", "review", "assembling"].includes(status)
+    ["running", "generating", "in_queue", "submitted", "planning", "review", "changes_requested", "assembling"].includes(status)
       ? "b-run"
       : ["done", "completed", "approved", "published", "ready", "planned"].includes(status)
         ? "b-done"

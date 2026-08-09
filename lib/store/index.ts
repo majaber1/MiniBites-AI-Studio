@@ -16,6 +16,7 @@ export interface Store {
   getProduction(id: string): Promise<Production | null>;
   saveProduction(p: Production): Promise<void>;
   listProductions(ownerKey: string): Promise<Production[]>;
+  listAllProductions(limit?: number): Promise<Production[]>;
   incrCounter(key: string, ttlSeconds: number): Promise<number>;
   acquireLock(key: string, ttlSeconds: number): Promise<string | null>;
   releaseLock(key: string, token: string): Promise<void>;

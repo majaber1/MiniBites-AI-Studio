@@ -37,3 +37,9 @@ test("only a lock owner can release a production lock", async () => {
   assert.ok(await store.acquireLock("paid-job", 60));
 });
 
+test("operations access uses a separate admin password", async () => {
+  process.env.ADMIN_ACCESS_PASSWORD = "separate-operations-password";
+  const { verifyAdminPassword } = await import("../lib/security.ts");
+  assert.equal(verifyAdminPassword("separate-operations-password"), true);
+  assert.equal(verifyAdminPassword(process.env.APP_ACCESS_PASSWORD), false);
+});

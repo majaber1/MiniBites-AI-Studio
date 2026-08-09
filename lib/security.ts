@@ -56,6 +56,14 @@ export function sessionCookie(): string {
   return `${COOKIE}=${signSession()}; Path=/; HttpOnly${secure}; SameSite=Lax; Max-Age=${SESSION_SECONDS}`;
 }
 
+export function verifyAdminPassword(candidate: string): boolean {
+  const expected = cleanEnv("ADMIN_ACCESS_PASSWORD") ?? "";
+  if (!expected) return false;
+  const a = Buffer.from(candidate);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 export function clearSessionCookie(): string {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
   return `${COOKIE}=; Path=/; HttpOnly${secure}; SameSite=Lax; Max-Age=0`;
