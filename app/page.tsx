@@ -13,7 +13,7 @@ export default function Home() {
       <div className="eyebrow"><span className="live-dot" /> Miniature stories, ready to share</div>
       <h1>One tiny dish.<br /><span>One big moment.</span></h1>
       <p className="lede">Create real 9:16 miniature-cooking videos with real hands, edible ingredients, macro detail, and a publishing workflow you can trust.</p>
-      <div className="hero-actions"><Link className="button" href="/studio">Create a video <span>→</span></Link><Link className="text-link" href="/templates">Explore templates</Link></div>
+      <div className="hero-actions"><Link className="button" href="/studio">Create a video <span>→</span></Link><Link className="text-link" href="/dashboard">Open dashboard</Link></div>
       <div className="hero-orbit" aria-hidden="true"><div className="orbit-card orbit-one">9:16<small>social ready</small></div><div className="orbit-card orbit-two">1:12<small>true scale</small></div><div className="orbit-card orbit-three">MP4<small>ready to share</small></div></div>
     </section>
     <section className="section-block">

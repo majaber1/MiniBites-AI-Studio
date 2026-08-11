@@ -29,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="brand">
               <Image src="/logo-icon.svg" alt="" width={34} height={34} priority /> MiniBites
             </Link>
+            <Link className="link" href="/dashboard">Dashboard</Link>
             <Link className="link" href="/studio">Creator Studio</Link>
             <Link className="link" href="/library">Library</Link>
             <Link className="link" href="/templates">Templates</Link>

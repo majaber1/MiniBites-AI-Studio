@@ -2,6 +2,8 @@
 
 ## Unreleased — V3 hardening
 
+- Added a full creator Dashboard with real recent projects, production metrics, integration readiness, workflow shortcuts and an honest missing-services panel.
+- Updated production documentation after GitHub/Vercel promotion and secure fal credential rotation.
 - Hardened session signing, expiry, logout and configuration checks.
 - Added owned distributed locks and idempotent project creation.
 - Added strict planner schema validation and visual-continuity metadata.

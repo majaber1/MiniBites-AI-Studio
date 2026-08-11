@@ -1,11 +1,11 @@
 # MiniBites Studio V3 — Full Audit
 
-Evidence date: 2026-08-09. GREEN = production-ready in code; YELLOW = usable with a documented limitation or external dependency; RED = broken; GRAY = intentionally future scope. Claims are based on code, automated tests, local browser checks, GitHub CI and a Vercel Preview—not README text alone.
+Evidence date: 2026-08-11. GREEN = production-ready in code; YELLOW = usable with a documented limitation or external dependency; RED = broken; GRAY = intentionally future scope. Claims are based on code, automated tests, local browser checks, GitHub CI and live Vercel Production—not README text alone.
 
 | Module | Exists | Working | Missing | Bugs | UX Issues | Tests | Priority | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Access/session | Yes | Signed expiring HttpOnly cookie, rate limit, logout | Multi-user accounts | None known | Shared studio password is phase-one scope | Tamper, expiry, separate secrets | P0 | GREEN |
-| Environment validation | Yes | Safe central readiness report; production rejects mock/non-durable project store | Live secret rotation | Exposed fal key must be rotated externally | None | Non-disclosure, provider requirements | P0 | GREEN |
+| Environment validation | Yes | Safe central readiness report; production rejects mock/non-durable project store | Optional provider health history | None known; exposed fal key was rotated and revoked | None | Non-disclosure, provider requirements | P0 | GREEN |
 | Idea input | Yes | Dish, direction, presets, EN/AR | Full global UI translation | None known | Arabic navigation remains English | Browser + request validation | P1 | GREEN |
 | Creative style | Yes | 10 internal styles, 6 visual cards | More visual previews | None known | Advanced styles accessible through templates/API | Planner tests | P1 | GREEN |
 | Video format | Yes | 9:16 provider contract; Quick/Standard/Extended alter plans | Resolution selector intentionally hidden | Provider-specific output metadata | No technical controls by default | Preset validation | P1 | GREEN |
@@ -28,7 +28,7 @@ Evidence date: 2026-08-09. GREEN = production-ready in code; YELLOW = usable wit
 | Instagram | Handoff | MP4 download, caption copy, platform link | Direct Graph publishing approval | Not connected | Honest manual path | False-claim safety | P1 | YELLOW |
 | Library | Yes | Search, filter, lazy previews, open, duplicate, archive, publish pack | Server pagination beyond first 50 | Historical legacy names normalized in UI | Creator-focused metadata | Duplicate/no-media test + browser | P1 | GREEN |
 | Templates | Yes | 10 editable regional/global/seasonal templates | Marketplace intentionally future | None known | Clear categories | Browser handoff | P1 | GREEN |
-| Dashboard | Yes | Home gives direct Create/Templates journey | Recent project tiles live in Library | None known | Intentionally avoids corporate analytics | Browser | P1 | GREEN |
+| Dashboard | Yes | Dedicated command center with real recent projects, metrics, readiness, workflow and missing integrations | Social analytics require connected platform APIs | None known | Intentionally avoids fabricated corporate analytics | Browser + API | P1 | GREEN |
 | Operations | Yes | Separate unlinked password gate, health/jobs/failures/cost | Lock enumeration and provider latency | Requires ADMIN_ACCESS_PASSWORD | Intentionally absent from creator nav | Separate-password test | P1 | GREEN |
 | Object storage | Yes | Optional Vercel Blob archive with provider fallback | Blob store must be connected externally | Provider URLs may expire without Blob | Warning shown in Library | Type/build; fallback path | P0 | YELLOW |
 | Branding | Yes | Six SVG assets, palette, typography, tagline | Automated watermark composition | None known | Consistent creator-studio direction | Render/build/browser | P1 | GREEN |
@@ -37,11 +37,10 @@ Evidence date: 2026-08-09. GREEN = production-ready in code; YELLOW = usable wit
 
 ## Remaining production dependencies
 
-1. Revoke the fal key exposed in chat, create a replacement and update `FAL_KEY` in Vercel without sharing it in chat.
-2. Connect Vercel Blob to obtain `BLOB_READ_WRITE_TOKEN` for durable final-video archiving.
-3. Add `ADMIN_ACCESS_PASSWORD` if the private `/operations` dashboard is needed.
-4. Configure YouTube OAuth only when private channel uploads are desired; TikTok/Instagram remain honest manual handoffs until platform approval.
-5. Run one deliberately low-cost real fal shot and one real merge after key rotation; automated tests never spend production credit.
+1. Connect Vercel Blob to obtain `BLOB_READ_WRITE_TOKEN` if durable final-video archiving is required.
+2. Add `ADMIN_ACCESS_PASSWORD` if the private `/operations` dashboard is needed.
+3. Configure YouTube OAuth only when private channel uploads are desired; TikTok/Instagram remain honest manual handoffs until platform approval.
+4. Run one deliberately low-cost real fal shot and one real merge when production credit use is explicitly approved; automated tests never spend production credit.
 
 ## Intentionally future scope
 

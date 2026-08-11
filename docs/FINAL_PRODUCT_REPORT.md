@@ -65,7 +65,7 @@ Video previews use `preload="metadata"`; pages do not preload every full MP4. Re
 
 ## Production readiness score
 
-Code and preview: **91/100**. Production promotion: **blocked by credential rotation and recommended Blob provisioning**, followed by one deliberately low-cost real generation/merge smoke test.
+Code and live production: **94/100**. GitHub `main` and Vercel Production are live, the exposed fal key was rotated and revoked, and the production readiness endpoint confirms the protected studio, durable Upstash state, Anthropic planning, real fal generation and assembly. Vercel Blob, YouTube OAuth and direct TikTok/Instagram approval remain optional external integrations. A paid real-media smoke test is still deliberately excluded from automated checks.
 
 ## Commands
 
@@ -82,4 +82,4 @@ Core environment: `APP_ACCESS_PASSWORD`, `SESSION_SECRET`, `UPSTASH_REDIS_REST_U
 
 ## Recommended next release
 
-Keep the name V3 until the rotated-key real-media acceptance test passes. Then tag **v3.1.0**: the first hardened creator-workspace release with clip versions, templates, durable archive support and operations visibility.
+Tag **v3.1.0** after one deliberately low-cost real fal generation/merge acceptance test and, if long-term retention is required, connecting Vercel Blob.
