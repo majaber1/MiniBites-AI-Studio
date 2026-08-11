@@ -5,6 +5,7 @@ import AccessGate from "@/components/AccessGate";
 import StatusBadge from "@/components/StatusBadge";
 import type { CreativeStyle, DurationPreset, Production, StoryMode } from "@/lib/types";
 import { getCreativeTemplate } from "@/lib/templates";
+import { useLocale } from "@/components/LocaleProvider";
 
 const SUGGESTIONS = ["Mini Saudi Kabsa", "Mini Pizza", "Tiny Kunafa", "Mini Sushi", "Small Pancakes", "Arabic Coffee"];
 const STYLES: Array<{ id: CreativeStyle; label: string; icon: string }> = [
@@ -23,6 +24,7 @@ interface ProviderOption {
 const ACTIVE = ["planning", "generating", "assembling"];
 
 export default function StudioPage() {
+  const { locale, setLocale } = useLocale();
   const [dish, setDish] = useState("");
   const [language, setLanguage] = useState<"en" | "ar">("en");
   const [description, setDescription] = useState("");
@@ -37,6 +39,8 @@ export default function StudioPage() {
   const [busy, setBusy] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const createRequestId = useRef<string | null>(null);
+
+  useEffect(() => setLanguage(locale), [locale]);
 
   const poll = useCallback(async (id: string) => {
     try {
@@ -200,7 +204,7 @@ export default function StudioPage() {
               maxLength={60}
               onChange={(e) => setDish(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && dish.trim().length >= 2 && startProduction()}
-              aria-label="Dish name"
+              aria-label={language === "ar" ? "اسم الطبق" : "Dish name"}
             />
           </div>
           <div className="chips">
@@ -208,14 +212,14 @@ export default function StudioPage() {
               <button key={s} onClick={() => setDish(s)}>{s}</button>
             ))}
           </div>
-          <textarea value={description} maxLength={300} onChange={(e) => setDescription(e.target.value)} placeholder={language === "ar" ? "اتجاه إبداعي اختياري…" : "Optional creative direction…"} aria-label="Creative direction" />
+          <textarea value={description} maxLength={300} onChange={(e) => setDescription(e.target.value)} placeholder={language === "ar" ? "اتجاه إبداعي اختياري…" : "Optional creative direction…"} aria-label={language === "ar" ? "الاتجاه الإبداعي" : "Creative direction"} />
           <div className="form-section"><strong>{language === "ar" ? "اختر الأسلوب" : "Choose a style"}</strong><div className="style-grid">{STYLES.map((item) => <button type="button" className={style === item.id ? "style-card selected" : "style-card"} key={item.id} onClick={() => setStyle(item.id)}><span>{item.icon}</span>{item.label}</button>)}</div></div>
           <div className="creator-options">
             <label>{language === "ar" ? "نوع القصة" : "Story"}<select value={storyMode} onChange={(e) => setStoryMode(e.target.value as StoryMode)}><option value="satisfying">Satisfying</option><option value="cinematic">Cinematic</option><option value="educational">Educational</option><option value="asmr">ASMR</option><option value="funny">Funny</option><option value="luxury">Luxury</option><option value="viral_hook">Hook Ideas</option></select></label>
             <label>{language === "ar" ? "المدة" : "Length"}<select value={durationPreset} onChange={(e) => setDurationPreset(e.target.value as DurationPreset)}><option value="quick">Quick</option><option value="standard">Standard</option><option value="extended">Extended</option></select></label>
-            <label>{language === "ar" ? "اللغة" : "Language"}<select value={language} onChange={(e) => setLanguage(e.target.value as "en" | "ar")}><option value="en">English</option><option value="ar">العربية</option></select></label>
+            <label>{language === "ar" ? "اللغة" : "Language"}<select value={language} onChange={(e) => setLocale(e.target.value as "en" | "ar")}><option value="en">English</option><option value="ar">العربية</option></select></label>
           </div>
-          <details className="advanced"><summary>Advanced</summary><label>Video engine<select value={provider} onChange={(e) => setProvider(e.target.value)} aria-label="Video provider"><option value="auto">MiniBites recommended</option>{providerOptions.map((o) => <option key={o.id} value={o.id} disabled={!o.configured}>{o.isMock ? `${o.name} — test only` : o.name}{o.configured ? "" : " (not configured)"}</option>)}</select></label></details>
+          <details className="advanced"><summary>{language === "ar" ? "خيارات متقدمة" : "Advanced"}</summary><label>{language === "ar" ? "محرك الفيديو" : "Video engine"}<select value={provider} onChange={(e) => setProvider(e.target.value)} aria-label={language === "ar" ? "مزود الفيديو" : "Video provider"}><option value="auto">{language === "ar" ? "اختيار MiniBites الموصى به" : "MiniBites recommended"}</option>{providerOptions.map((o) => <option key={o.id} value={o.id} disabled={!o.configured}>{o.isMock ? `${o.name} — ${language === "ar" ? "للاختبار فقط" : "test only"}` : o.name}{o.configured ? "" : (language === "ar" ? " (غير مضبوط)" : " (not configured)")}</option>)}</select></label></details>
           <button className="create-video" onClick={startProduction} disabled={busy || dish.trim().length < 2}>{busy ? (language === "ar" ? "جارٍ التحضير…" : "Preparing…") : (language === "ar" ? "إنشاء فيديو" : "Create Video")}</button>
         </div>
       )}
