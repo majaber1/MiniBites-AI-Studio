@@ -45,3 +45,9 @@ The mock provider is testing-only and never claims to create a real video.
 `Idea → Style → Plan → Generate → Review each clip → Assemble → Approve → Publish pack`
 
 The Library supports search, status filters, resumable projects, duplication without copying paid media, archive, download and platform-specific copy actions. `/templates` contains editable Saudi/Arab, global and seasonal starting points. `/operations` is deliberately absent from creator navigation and requires a separate `ADMIN_ACCESS_PASSWORD`.
+
+## Bilingual application shell
+
+MiniBites supports English (LTR) and Arabic (RTL) from the persistent language switch in the application header. The responsive shell includes a collapsible desktop sidebar, mobile drawer, breadcrumbs, accessible focus states and reduced-motion support. Geist is used for English and IBM Plex Sans Arabic for Arabic through Next.js self-hosted font optimization.
+
+See `docs/PRODUCT_AUDIT.md` for the module matrix and remaining external dependencies, and `docs/RELEASE_REPORT.md` for release verification.

@@ -4,12 +4,14 @@ import { api, ApiError } from "@/components/api";
 import AccessGate from "@/components/AccessGate";
 import StatusBadge from "@/components/StatusBadge";
 import type { Production } from "@/lib/types";
+import { useLocale } from "@/components/LocaleProvider";
 
 function displayDish(dish: string) {
   return /^(mini|tiny|small)\b/i.test(dish.trim()) ? dish.trim() : `Mini ${dish.trim()}`;
 }
 
 export default function LibraryPage() {
+  const { locale } = useLocale(); const ar = locale === "ar";
   const [productions, setProductions] = useState<Production[] | null>(null);
   const [authStatus, setAuthStatus] = useState<number | null>(null);
   const [error, setError] = useState("");
@@ -83,9 +85,9 @@ export default function LibraryPage() {
   return (
     <main className="wrap">
       <section className="hero" style={{ paddingBottom: 8 }}>
-        <div className="eyebrow">Your finished work</div>
-        <h1>Publish Library</h1>
-        <p className="lede">Review once, then publish or take the ready-to-post pack anywhere.</p>
+        <div className="eyebrow">{ar ? "أعمالك المكتملة" : "Your finished work"}</div>
+        <h1>{ar ? "مكتبة النشر" : "Publish Library"}</h1>
+        <p className="lede">{ar ? "راجع مرة، ثم انشر أو خذ حزمة النشر الجاهزة إلى أي منصة." : "Review once, then publish or take the ready-to-post pack anywhere."}</p>
       </section>
 
       {authStatus !== null && <AccessGate status={authStatus} onUnlocked={load} />}
@@ -93,13 +95,13 @@ export default function LibraryPage() {
       {notice && <p className="note">{notice}</p>}
 
       {productions && productions.length > 0 && <div className="library-tools card">
-        <label>Find a project<input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search dishes…" /></label>
-        <label>Status<select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="active">All active</option><option value="planned">Draft plans</option><option value="generating">Generating</option><option value="review">Needs review</option><option value="approved">Approved</option><option value="completed">Published</option><option value="failed">Failed</option><option value="archived">Archived</option></select></label>
+        <label>{ar ? "ابحث عن مشروع" : "Find a project"}<input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={ar ? "ابحث في الأطباق…" : "Search dishes…"} /></label>
+        <label>{ar ? "الحالة" : "Status"}<select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="active">{ar ? "كل النشط" : "All active"}</option><option value="planned">{ar ? "خطط مسودة" : "Draft plans"}</option><option value="generating">{ar ? "قيد التوليد" : "Generating"}</option><option value="review">{ar ? "تحتاج مراجعة" : "Needs review"}</option><option value="approved">{ar ? "معتمدة" : "Approved"}</option><option value="completed">{ar ? "منشورة" : "Published"}</option><option value="failed">{ar ? "فشلت" : "Failed"}</option><option value="archived">{ar ? "مؤرشفة" : "Archived"}</option></select></label>
       </div>}
 
       {productions && productions.length === 0 && (
         <div className="card">
-          <h3>No productions yet</h3>
+          <h3>{ar ? "لا توجد إنتاجات بعد" : "No productions yet"}</h3>
           <p className="dim">
             Start your first production in the Creator Studio. (The old manually-assembled Omelette demo from
             v1 was removed — it was still images with camera movement, not a real generated video.)
@@ -107,7 +109,7 @@ export default function LibraryPage() {
         </div>
       )}
 
-      {productions && productions.length > 0 && visible.length === 0 && <div className="card"><p className="dim">No projects match this search and filter.</p></div>}
+      {productions && productions.length > 0 && visible.length === 0 && <div className="card"><p className="dim">{ar ? "لا توجد مشاريع تطابق البحث والتصفية." : "No projects match this search and filter."}</p></div>}
 
       {visible.length > 0 && (
         <div className="grid">
@@ -124,13 +126,13 @@ export default function LibraryPage() {
                 {p.durationSeconds ? ` · ~${p.durationSeconds}s` : ""}{p.resolution ? ` · ${p.resolution}` : ""}
               </p>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-                <button className="ghost" onClick={() => openProject(p.id)}>Open</button>
-                <button className="ghost" onClick={() => duplicateProject(p)}>Duplicate</button>
+                <button className="ghost" onClick={() => openProject(p.id)}>{ar ? "فتح" : "Open"}</button>
+                <button className="ghost" onClick={() => duplicateProject(p)}>{ar ? "تكرار" : "Duplicate"}</button>
                 {p.finalVideoUrl && !p.providerIsMock && (
                   <>
-                    <a className="action-link ghost" href={p.finalVideoUrl} target="_blank" rel="noreferrer">Preview</a>
-                    <a className="action-link ghost" href={p.finalVideoUrl} download>Download MP4</a>
-                    <button className="ghost" onClick={() => copyCaption(p)}>Copy caption</button>
+                    <a className="action-link ghost" href={p.finalVideoUrl} target="_blank" rel="noreferrer">{ar ? "معاينة" : "Preview"}</a>
+                    <a className="action-link ghost" href={p.finalVideoUrl} download>{ar ? "تنزيل MP4" : "Download MP4"}</a>
+                    <button className="ghost" onClick={() => copyCaption(p)}>{ar ? "نسخ النص" : "Copy caption"}</button>
                     {p.socialPack && <>
                       <button className="ghost" onClick={() => copyText("TikTok caption", p.socialPack!.tiktokCaption)}>TikTok copy</button>
                       <button className="ghost" onClick={() => copyText("Instagram caption", p.socialPack!.instagramCaption)}>Instagram copy</button>
@@ -142,7 +144,7 @@ export default function LibraryPage() {
                   <><button onClick={() => act(p.id, "/approve", { action: "approve", note: window.prompt("Optional approval note") ?? "" })}>Approve</button><button className="ghost" onClick={() => { const note = window.prompt("What should change?"); if (note !== null) act(p.id, "/approve", { action: "request_changes", note }); }}>Request changes</button></>
                 )}
                 {(p.status === "approved") && (
-                  <button onClick={() => act(p.id, "/publish")}>Publish to YouTube</button>
+                  <button onClick={() => act(p.id, "/publish")}>{ar ? "النشر على YouTube" : "Publish to YouTube"}</button>
                 )}
                 {p.finalVideoUrl && !p.providerIsMock && <>
                   <a className="action-link platform-button tiktok" href="https://www.tiktok.com/upload" target="_blank" rel="noreferrer">Open TikTok</a>
