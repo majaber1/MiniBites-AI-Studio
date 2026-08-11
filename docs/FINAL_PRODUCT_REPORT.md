@@ -65,7 +65,7 @@ Video previews use `preload="metadata"`; pages do not preload every full MP4. Re
 
 ## Production readiness score
 
-Code and live production: **94/100**. GitHub `main` and Vercel Production are live, the exposed fal key was rotated and revoked, and the production readiness endpoint confirms the protected studio, durable Upstash state, Anthropic planning, real fal generation and assembly. Vercel Blob, YouTube OAuth and direct TikTok/Instagram approval remain optional external integrations. A paid real-media smoke test is still deliberately excluded from automated checks.
+Code and live production: **95/100**. GitHub `main` and Vercel Production are live, the exposed fal key was rotated and revoked, and the production readiness endpoint confirms the protected studio, separately protected Operations view, durable Upstash state, Anthropic planning, real fal generation and assembly. Vercel Blob, YouTube OAuth and direct TikTok/Instagram approval remain optional external integrations. A paid real-media smoke test is still deliberately excluded from automated checks.
 
 ## Commands
 
@@ -78,7 +78,7 @@ npm run build
 npm audit --audit-level=high
 ```
 
-Core environment: `APP_ACCESS_PASSWORD`, `SESSION_SECRET`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `VIDEO_PROVIDER`, `FAL_KEY`. Recommended: `BLOB_READ_WRITE_TOKEN`, `ADMIN_ACCESS_PASSWORD`. Optional: Anthropic/Gemini, Google video, Wan worker and YouTube OAuth variables documented in `.env.example`.
+Core environment: `APP_ACCESS_PASSWORD`, `SESSION_SECRET`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `VIDEO_PROVIDER`, `FAL_KEY`. `ADMIN_ACCESS_PASSWORD` is configured separately for the live Operations view. Recommended: `BLOB_READ_WRITE_TOKEN`. Optional: Anthropic/Gemini, Google video, Wan worker and YouTube OAuth variables documented in `.env.example`.
 
 ## Recommended next release
 

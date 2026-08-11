@@ -29,7 +29,7 @@ Evidence date: 2026-08-11. GREEN = production-ready in code; YELLOW = usable wit
 | Library | Yes | Search, filter, lazy previews, open, duplicate, archive, publish pack | Server pagination beyond first 50 | Historical legacy names normalized in UI | Creator-focused metadata | Duplicate/no-media test + browser | P1 | GREEN |
 | Templates | Yes | 10 editable regional/global/seasonal templates | Marketplace intentionally future | None known | Clear categories | Browser handoff | P1 | GREEN |
 | Dashboard | Yes | Dedicated command center with real recent projects, metrics, readiness, workflow and missing integrations | Social analytics require connected platform APIs | None known | Intentionally avoids fabricated corporate analytics | Browser + API | P1 | GREEN |
-| Operations | Yes | Separate unlinked password gate, health/jobs/failures/cost | Lock enumeration and provider latency | Requires ADMIN_ACCESS_PASSWORD | Intentionally absent from creator nav | Separate-password test | P1 | GREEN |
+| Operations | Yes | Separate unlinked password gate, health/jobs/failures/cost; live credential verified | Lock enumeration and provider latency | None known | Intentionally absent from creator nav | Separate-password test + live API | P1 | GREEN |
 | Object storage | Yes | Optional Vercel Blob archive with provider fallback | Blob store must be connected externally | Provider URLs may expire without Blob | Warning shown in Library | Type/build; fallback path | P0 | YELLOW |
 | Branding | Yes | Six SVG assets, palette, typography, tagline | Automated watermark composition | None known | Consistent creator-studio direction | Render/build/browser | P1 | GREEN |
 | Mobile/RTL/a11y | Partial | 375px no overflow, RTL form, labels, focus, tap targets | Full Arabic app shell and WCAG audit | No known blocking mobile bug | Approval prompt is basic | Desktop/mobile browser | P1 | YELLOW |
@@ -38,9 +38,8 @@ Evidence date: 2026-08-11. GREEN = production-ready in code; YELLOW = usable wit
 ## Remaining production dependencies
 
 1. Connect Vercel Blob to obtain `BLOB_READ_WRITE_TOKEN` if durable final-video archiving is required.
-2. Add `ADMIN_ACCESS_PASSWORD` if the private `/operations` dashboard is needed.
-3. Configure YouTube OAuth only when private channel uploads are desired; TikTok/Instagram remain honest manual handoffs until platform approval.
-4. Run one deliberately low-cost real fal shot and one real merge when production credit use is explicitly approved; automated tests never spend production credit.
+2. Configure YouTube OAuth only when private channel uploads are desired; TikTok/Instagram remain honest manual handoffs until platform approval.
+3. Run one deliberately low-cost real fal shot and one real merge when production credit use is explicitly approved; automated tests never spend production credit.
 
 ## Intentionally future scope
 
