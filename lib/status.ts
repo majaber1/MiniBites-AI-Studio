@@ -72,8 +72,37 @@ export function integrationStatuses(): IntegrationStatus[] {
       key: "tiktok",
       label: "TikTok publishing",
       configured: Boolean(process.env.TIKTOK_CLIENT_KEY && process.env.TIKTOK_CLIENT_SECRET && process.env.TIKTOK_ACCESS_TOKEN),
-      detail: "Requires an approved TikTok developer app with the Content Posting API. Approval by TikTok is a manual review on their side.",
+      detail: Boolean(process.env.TIKTOK_CLIENT_KEY && process.env.TIKTOK_CLIENT_SECRET && process.env.TIKTOK_ACCESS_TOKEN)
+        ? "Connected: approved productions upload to TikTok via Content Posting API."
+        : "Requires an approved TikTok developer app with the Content Posting API.",
       requiredEnv: ["TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET", "TIKTOK_ACCESS_TOKEN"],
+    },
+    {
+      key: "instagram",
+      label: "Instagram Reels publishing",
+      configured: Boolean(process.env.INSTAGRAM_ACCESS_TOKEN && process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID),
+      detail: Boolean(process.env.INSTAGRAM_ACCESS_TOKEN && process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID)
+        ? "Connected: approved productions publish as Instagram Reels via Graph API."
+        : "Requires an Instagram Business account connected to a Facebook Page, with a long-lived access token.",
+      requiredEnv: ["INSTAGRAM_ACCESS_TOKEN", "INSTAGRAM_BUSINESS_ACCOUNT_ID"],
+    },
+    {
+      key: "x-twitter",
+      label: "X / Twitter publishing",
+      configured: Boolean(process.env.X_API_KEY && process.env.X_API_SECRET && process.env.X_ACCESS_TOKEN && process.env.X_ACCESS_TOKEN_SECRET),
+      detail: Boolean(process.env.X_API_KEY && process.env.X_API_SECRET && process.env.X_ACCESS_TOKEN && process.env.X_ACCESS_TOKEN_SECRET)
+        ? "Connected: approved productions post to X/Twitter with video attachment."
+        : "Requires an X developer app with Elevated access and media upload permission.",
+      requiredEnv: ["X_API_KEY", "X_API_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_TOKEN_SECRET"],
+    },
+    {
+      key: "snapchat",
+      label: "Snapchat Spotlight publishing",
+      configured: Boolean(process.env.SNAPCHAT_CLIENT_ID && process.env.SNAPCHAT_CLIENT_SECRET && process.env.SNAPCHAT_REFRESH_TOKEN),
+      detail: Boolean(process.env.SNAPCHAT_CLIENT_ID && process.env.SNAPCHAT_CLIENT_SECRET && process.env.SNAPCHAT_REFRESH_TOKEN)
+        ? "Connected: approved productions upload to Snapchat Spotlight."
+        : "Requires a Snapchat developer app with Spotlight API access.",
+      requiredEnv: ["SNAPCHAT_CLIENT_ID", "SNAPCHAT_CLIENT_SECRET", "SNAPCHAT_REFRESH_TOKEN"],
     },
   ];
 }

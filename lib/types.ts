@@ -83,10 +83,13 @@ export type ProductionStatus =
   | "failed"
   | "cancelled";
 
+export type PublishPlatform = "youtube" | "tiktok" | "instagram" | "x" | "snapchat";
+
 export interface PublishState {
-  platform: "youtube" | "tiktok";
-  status: "not_connected" | "ready" | "published" | "failed";
+  platform: PublishPlatform;
+  status: "not_connected" | "ready" | "published" | "failed" | "processing";
   url?: string;
+  externalId?: string;
   requiredAction?: string;
 }
 
@@ -132,6 +135,8 @@ export interface Production {
     instagramCaption: string;
     youtubeTitle: string;
     youtubeDescription: string;
+    xTweet: string;
+    snapchatCaption: string;
     hashtags: string[];
   };
   durationSeconds?: number;
