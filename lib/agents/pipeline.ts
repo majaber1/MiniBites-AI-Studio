@@ -104,6 +104,9 @@ export function createProduction(dish: string, language: "en" | "ar", ownerKey: 
     publish: [
       { platform: "youtube", status: "not_connected", requiredAction: "Connect a YouTube OAuth client (see Integrations)." },
       { platform: "tiktok", status: "not_connected", requiredAction: "Connect an approved TikTok developer app (see Integrations)." },
+      { platform: "instagram", status: "not_connected", requiredAction: "Connect an Instagram Business account via Facebook Graph API (see Integrations)." },
+      { platform: "x", status: "not_connected", requiredAction: "Connect an X/Twitter developer app with media upload scope (see Integrations)." },
+      { platform: "snapchat", status: "not_connected", requiredAction: "Connect a Snapchat developer app (see Integrations)." },
     ],
     ownerKey,
     usage: { submittedShots: 0, completedShots: 0, failedShots: 0, estimatedCostUsd: 0 },
@@ -454,11 +457,14 @@ function finishAssembly(p: Production, durationSeconds: number) {
   p.durationSeconds = durationSeconds;
   const caption = p.publishCaption ?? `Tiny ${p.dish}, made for real.`;
   const hashtags = (p.publishHashtags ?? ["#miniaturecooking", "#tinyfood", "#asmr"]).slice(0, 8);
+  const xCaption = `${caption} ${hashtags.slice(0, 3).join(" ")}`.slice(0, 280);
   p.socialPack = {
     tiktokCaption: `${caption}\n\n${hashtags.slice(0, 5).join(" ")}`,
     instagramCaption: `${caption}\n\n${hashtags.join(" ")}`,
     youtubeTitle: (p.publishTitle ?? `Miniature ${p.dish} — Tiny Kitchen`).slice(0, 100),
     youtubeDescription: `${caption}\n\n${hashtags.join(" ")}`,
+    xTweet: xCaption,
+    snapchatCaption: caption.slice(0, 64),
     hashtags,
   };
   p.status = "awaiting_approval";
