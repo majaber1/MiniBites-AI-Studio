@@ -1,12 +1,9 @@
 // ---------------------------------------------------------------------------
-// Persistent storage layer.
-// Production: Upstash Redis (UPSTASH_REDIS_REST_URL + TOKEN) — durable across
-// refreshes, restarts and serverless instances.
-// Fallback: in-memory store (labeled NON-DURABLE) so local dev works with
-// zero configuration.
+// Kiswani persistent storage layer.
+// Keeps MiniBites production keys backward-compatible while adding projects.
 // ---------------------------------------------------------------------------
 import { cleanEnv } from "@/lib/env";
-import type { Production } from "../types";
+import type { Production, StudioProject } from "../types";
 import { MemoryStore } from "./memory";
 import { UpstashStore } from "./upstash";
 
@@ -17,6 +14,9 @@ export interface Store {
   saveProduction(p: Production): Promise<void>;
   listProductions(ownerKey: string): Promise<Production[]>;
   listAllProductions(limit?: number): Promise<Production[]>;
+  getProject(id: string): Promise<StudioProject | null>;
+  saveProject(project: StudioProject): Promise<void>;
+  listProjects(ownerKey: string): Promise<StudioProject[]>;
   incrCounter(key: string, ttlSeconds: number): Promise<number>;
   acquireLock(key: string, ttlSeconds: number): Promise<string | null>;
   releaseLock(key: string, token: string): Promise<void>;
@@ -24,14 +24,22 @@ export interface Store {
 
 declare global {
   // eslint-disable-next-line no-var
+  var __kiswaniStore: Store | undefined;
+  // Legacy singleton may exist during hot reload from the old build.
+  // eslint-disable-next-line no-var
   var __minibitesStore: Store | undefined;
 }
 
 export function getStore(): Store {
-  if (globalThis.__minibitesStore) return globalThis.__minibitesStore;
+  if (globalThis.__kiswaniStore) return globalThis.__kiswaniStore;
+  if (globalThis.__minibitesStore) {
+    globalThis.__kiswaniStore = globalThis.__minibitesStore;
+    return globalThis.__kiswaniStore;
+  }
   const url = cleanEnv("UPSTASH_REDIS_REST_URL");
   const token = cleanEnv("UPSTASH_REDIS_REST_TOKEN");
   const store: Store = url && token ? new UpstashStore(url, token) : new MemoryStore();
+  globalThis.__kiswaniStore = store;
   globalThis.__minibitesStore = store;
   return store;
 }

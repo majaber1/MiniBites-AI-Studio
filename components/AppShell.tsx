@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import LogoutButton from "./LogoutButton";
 import { useLocale } from "./LocaleProvider";
 
-type IconName = "grid" | "spark" | "film" | "layout" | "plug" | "bot" | "pulse";
+type IconName = "grid" | "spark" | "film" | "layout" | "plug" | "bot" | "pulse" | "folder" | "send" | "chart";
 const paths: Record<IconName, React.ReactNode> = {
   grid: <><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,
   spark: <><path d="m12 3-1.4 4.1a5 5 0 0 1-3.1 3.1L3.5 12l4 1.6a5 5 0 0 1 3 3L12 21l1.5-4.4a5 5 0 0 1 3-3l4-1.6-4-1.8a5 5 0 0 1-3.1-3.1Z"/></>,
@@ -16,6 +16,9 @@ const paths: Record<IconName, React.ReactNode> = {
   plug: <><path d="m12 22 1-5-3-3 5-9 1 5 4 1-8 11Z"/></>,
   bot: <><rect x="4" y="7" width="16" height="13" rx="3"/><path d="M12 3v4M8 12h.01M16 12h.01M8 16h8"/></>,
   pulse: <><path d="M3 12h4l2-6 4 12 2-6h6"/></>,
+  folder: <><path d="M3 7.5h7l2 2h9v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M3 7.5V6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1.5"/></>,
+  send: <><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></>,
+  chart: <><path d="M4 20V10M10 20V4M16 20v-7M22 20V7"/></>,
 };
 
 function Icon({ name }: { name: IconName }) {
@@ -23,9 +26,15 @@ function Icon({ name }: { name: IconName }) {
 }
 
 const navigation = [
-  { href: "/dashboard", key: "dashboard", icon: "grid" }, { href: "/studio", key: "studio", icon: "spark" },
-  { href: "/library", key: "library", icon: "film" }, { href: "/templates", key: "templates", icon: "layout" },
-  { href: "/integrations", key: "integrations", icon: "plug" }, { href: "/agents", key: "agents", icon: "bot" },
+  { href: "/dashboard", key: "dashboard", icon: "grid" },
+  { href: "/projects", key: "projects", icon: "folder" },
+  { href: "/studio", key: "studio", icon: "spark" },
+  { href: "/library", key: "library", icon: "film" },
+  { href: "/publishing", key: "publishing", icon: "send" },
+  { href: "/monitoring", key: "monitoring", icon: "chart" },
+  { href: "/templates", key: "templates", icon: "layout" },
+  { href: "/integrations", key: "integrations", icon: "plug" },
+  { href: "/agents", key: "agents", icon: "bot" },
 ] as const;
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -41,7 +50,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     {mobileOpen && <button className="shell-scrim" aria-label={t("close")} onClick={() => setMobileOpen(false)} />}
     <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`} aria-label={t("workspace")}>
       <div className="sidebar-brand">
-        <Link href="/dashboard" className="brand"><Image src="/logo-icon.svg" alt="" width={34} height={34} priority/><span>MiniBites</span></Link>
+        <Link href="/dashboard" className="brand"><Image src="/logo-icon.svg" alt="" width={34} height={34} priority/><span>Kiswani AI</span></Link>
         <button className="icon-button mobile-only" onClick={() => setMobileOpen(false)} aria-label={t("close")}>×</button>
       </div>
       <p className="sidebar-label">{t("workspace")}</p>
@@ -59,12 +68,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="breadcrumbs" aria-label="Breadcrumb"><Link href="/dashboard">{t("home")}</Link><span>/</span><strong>{current ? t(current.key) : t("home")}</strong></div>
         <div className="topbar-actions">
           <button className="language-toggle" onClick={toggleLocale} aria-label="Switch language">{t("language")}</button>
-          <div className="account-chip"><span className="avatar">MB</span><span className="account-copy"><strong>{t("account")}</strong><LogoutButton /></span></div>
+          <div className="account-chip"><span className="avatar">KS</span><span className="account-copy"><strong>{t("account")}</strong><LogoutButton /></span></div>
           <Link className="nav-cta" href="/studio">＋ <span>{t("create")}</span></Link>
         </div>
       </header>
       <div id="main-content" className="shell-content" tabIndex={-1}>{children}</div>
-      <footer className="shell-footer">MiniBites V3 · {new Date().getFullYear()}</footer>
+      <footer className="shell-footer">Kiswani AI Studio · {new Date().getFullYear()}</footer>
     </div>
   </div>;
 }

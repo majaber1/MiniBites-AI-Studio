@@ -5,100 +5,92 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import AccessGate from "@/components/AccessGate";
 import StatusBadge from "@/components/StatusBadge";
 import { api, ApiError } from "@/components/api";
-import type { IntegrationStatus, Production } from "@/lib/types";
+import type { IntegrationStatus, Production, StudioProject } from "@/lib/types";
 import { useLocale } from "@/components/LocaleProvider";
 
+interface ProviderOption { id: string; name: string; configured: boolean; isMock: boolean; isDefault: boolean }
 interface StatusResponse {
   signedIn: boolean;
   integrations: IntegrationStatus[];
+  providers: ProviderOption[];
   environment: { productionReady: boolean; missingRequired: string[] };
 }
-
-const WORKFLOW = ["Idea", "Plan", "Generate", "Review", "Assemble", "Approve", "Share"];
+type ProjectRow = StudioProject & { episodeCount: number };
+const WORKFLOW = ["Idea", "Plan", "Generate", "Review", "Assemble", "Approve", "Publish", "Measure"];
 
 export default function DashboardPage() {
-  const { locale } = useLocale();
-  const ar = locale === "ar";
+  const { locale } = useLocale(); const ar = locale === "ar";
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [productions, setProductions] = useState<Production[]>([]);
+  const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [authStatus, setAuthStatus] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     try {
-      const currentStatus = await api<StatusResponse>("/api/status");
-      setStatus(currentStatus);
-      const result = await api<{ productions: Production[] }>("/api/productions");
-      setProductions(result.productions);
-      setAuthStatus(null);
+      const [currentStatus, prod, projs] = await Promise.all([
+        api<StatusResponse>("/api/status"),
+        api<{ productions: Production[] }>("/api/productions"),
+        api<{ projects: ProjectRow[] }>("/api/projects"),
+      ]);
+      setStatus(currentStatus); setProductions(prod.productions); setProjects(projs.projects); setAuthStatus(null);
     } catch (reason) {
       if (reason instanceof ApiError && (reason.status === 401 || reason.status === 503)) setAuthStatus(reason.status);
       else setError(reason instanceof Error ? reason.message : "Dashboard data could not be loaded.");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { void load(); }, [load]);
 
-  const active = useMemo(() => productions.filter((item) => ["planning", "generating", "assembling"].includes(item.status)).length, [productions]);
-  const ready = useMemo(() => productions.filter((item) => ["awaiting_approval", "approved", "completed"].includes(item.status)).length, [productions]);
-  const completedShots = useMemo(() => productions.reduce((sum, item) => sum + item.usage.completedShots, 0), [productions]);
-  const missing = status?.integrations.filter((item) => !item.configured) ?? [];
-  const configuredCount = status?.integrations.filter((item) => item.configured).length ?? 0;
+  const active = useMemo(() => productions.filter((p) => ["planning", "generating", "assembling"].includes(p.status)), [productions]);
+  const ready = useMemo(() => productions.filter((p) => ["awaiting_approval", "approved"].includes(p.status)), [productions]);
+  const published = useMemo(() => productions.filter((p) => p.publish.some((e) => e.status === "published" || e.status === "processing")).length, [productions]);
+  const queuedShots = useMemo(() => productions.reduce((sum, p) => sum + p.shots.filter((s) => ["submitted", "in_queue", "generating"].includes(s.status)).length, 0), [productions]);
+  const providers = status?.providers.filter((p) => !p.isMock) ?? [];
+  const connectedPublishers = status?.integrations.filter((i) => ["youtube", "tiktok", "instagram", "x-twitter", "snapchat"].includes(i.key) && i.configured).length ?? 0;
 
   return <main className="wrap dashboard-page">
     <section className="dashboard-hero">
-      <div>
-        <div className="eyebrow"><span className="live-dot" /> {ar ? "مركز تحكم المنشئ" : "Creator command center"}</div>
-        <h1>{ar ? "استوديو الطعام المصغّر،" : "Your tiny-food studio,"}<br /><span>{ar ? "كله في مكان واحد." : "all in one place."}</span></h1>
-        <p>{ar ? "ابدأ إنتاجًا، وواصل العمل الحقيقي، واعرف ما هو متصل بدقة—دون تحليلات وهمية." : "Start a production, continue real work, and see exactly what is connected—without fake analytics."}</p>
-      </div>
-      <div className="dashboard-actions">
-        <Link className="button" href="/studio">{ar ? "إنشاء فيديو جديد" : "Create new video"} <span>→</span></Link>
-        <Link className="action-link ghost" href="/templates">{ar ? "تصفح القوالب" : "Browse templates"}</Link>
-      </div>
+      <div><div className="eyebrow"><span className="live-dot" /> {ar ? "مركز قيادة المحتوى" : "Content command center"}</div><h1>{ar ? "Kiswani AI Studio،" : "Kiswani AI Studio,"}<br/><span>{ar ? "من الفكرة إلى الجمهور." : "idea to audience."}</span></h1><p>{ar ? "مشاريع مستقلة، محرك إنتاج واحد، نشر متعدد المنصات، وحالة حقيقية بدون أرقام وهمية." : "Independent projects, one production engine, multi-platform publishing and real state without fake analytics."}</p></div>
+      <div className="dashboard-actions"><Link className="button" href="/studio">{ar ? "حلقة جديدة" : "New episode"} <span>→</span></Link><Link className="action-link ghost" href="/projects">{ar ? "المشاريع" : "Projects"}</Link></div>
     </section>
 
     {authStatus !== null ? <AccessGate status={authStatus} onUnlocked={() => void load()} /> : <>
       {error && <p className="warn">{error}</p>}
-      <section className="dashboard-metrics" aria-label="Production overview">
-        <article><span>{ar ? "المشاريع" : "Projects"}</span><strong>{loading ? "—" : productions.length}</strong><small>{ar ? "محفوظة في مكتبتك" : "Saved in your library"}</small></article>
-        <article><span>{ar ? "نشط الآن" : "Active now"}</span><strong>{loading ? "—" : active}</strong><small>{ar ? "تخطيط أو توليد" : "Planning or generating"}</small></article>
-        <article><span>{ar ? "جاهز" : "Ready"}</span><strong>{loading ? "—" : ready}</strong><small>{ar ? "راجع أو اعتمد أو شارك" : "Review, approve or share"}</small></article>
-        <article><span>{ar ? "المقاطع المنشأة" : "Clips made"}</span><strong>{loading ? "—" : completedShots}</strong><small>{ar ? "مهام مزود مكتملة" : "Completed provider jobs"}</small></article>
+      <section className="dashboard-metrics" aria-label="Studio overview">
+        <article><span>{ar ? "المشاريع" : "Projects"}</span><strong>{loading ? "—" : projects.length}</strong><small>{ar ? "عوالم محتوى مستقلة" : "Independent content worlds"}</small></article>
+        <article><span>{ar ? "يعمل الآن" : "Active now"}</span><strong>{loading ? "—" : active.length}</strong><small>{queuedShots} {ar ? "مقطع قيد التنفيذ" : "shots in flight"}</small></article>
+        <article><span>{ar ? "ينتظر الاعتماد" : "Needs approval"}</span><strong>{loading ? "—" : ready.length}</strong><small>{ar ? "راجع ثم انشر" : "Review then publish"}</small></article>
+        <article><span>{ar ? "تم النشر" : "Published"}</span><strong>{loading ? "—" : published}</strong><small>{connectedPublishers}/5 {ar ? "منصات مربوطة" : "publishers connected"}</small></article>
       </section>
 
       <section className="dashboard-grid">
         <article className="card dashboard-projects">
-          <div className="dashboard-section-head"><div><span className="eyebrow">{ar ? "واصل الإنشاء" : "Continue creating"}</span><h2>{ar ? "المشاريع الأخيرة" : "Recent projects"}</h2></div><Link className="text-link" href="/library">{ar ? "عرض المكتبة" : "View library"}</Link></div>
-          {loading ? <p className="dim">Loading your projects…</p> : productions.length === 0 ? <div className="dashboard-empty"><strong>No projects yet.</strong><p className="dim">Start with a dish or a ready-made creative template.</p><Link className="button" href="/studio">Create your first video</Link></div> : <div className="dashboard-project-list">
-            {productions.slice(0, 5).map((project) => <Link href="/library" className="dashboard-project" key={project.id}>
-              <span className="project-thumb" aria-hidden>{project.dish.slice(0, 1).toUpperCase()}</span>
-              <span><strong>{project.dish}</strong><small>{project.style} · {project.durationPreset} · {new Intl.DateTimeFormat(ar ? "ar-SA" : "en", { dateStyle: "medium" }).format(new Date(project.updatedAt))}</small></span>
-              <StatusBadge status={project.status} />
-              <span className="project-arrow" aria-hidden>→</span>
-            </Link>)}
-          </div>}
+          <div className="dashboard-section-head"><div><span className="eyebrow">{ar ? "واصل الإنشاء" : "Continue creating"}</span><h2>{ar ? "آخر الحلقات" : "Recent episodes"}</h2></div><Link className="text-link" href="/library">{ar ? "المكتبة" : "Library"}</Link></div>
+          {productions.length === 0 ? <div className="dashboard-empty"><strong>{ar ? "ابدأ أول حلقة." : "Create your first episode."}</strong><p className="dim">MiniBites and Iyal Al Halal are ready as starter projects.</p><Link className="button" href="/studio">{ar ? "ابدأ" : "Start"}</Link></div> : <div className="dashboard-project-list">{productions.slice(0,6).map((p) => <Link href={`/studio?project=${encodeURIComponent(p.projectId ?? "minibites")}`} className="dashboard-project" key={p.id}><span className="project-thumb" aria-hidden>{projects.find((x) => x.id === (p.projectId ?? "minibites"))?.icon ?? "🎬"}</span><span><strong>{p.episodeTitle ?? p.dish}</strong><small>{p.projectName ?? "MiniBites"} · {p.provider} · {new Intl.DateTimeFormat(ar ? "ar-SA" : "en", { dateStyle: "medium" }).format(new Date(p.updatedAt))}</small></span><StatusBadge status={p.status}/><span className="project-arrow">→</span></Link>)}</div>}
         </article>
 
         <aside className="card readiness-card">
-          <div className="readiness-title"><div><span className="eyebrow">{ar ? "جاهزية الإنتاج" : "Production readiness"}</span><h2>{status?.environment.productionReady ? (ar ? "الأساس جاهز" : "Core ready") : (ar ? "يحتاج اهتمامًا" : "Needs attention")}</h2></div><span className={status?.environment.productionReady ? "readiness-light ready" : "readiness-light"} /></div>
-          <p className="dim">{configuredCount} of {status?.integrations.length ?? 0} integrations connected. Optional publishing tools can be added later.</p>
-          <div className="readiness-list">{status?.integrations.map((item) => <div key={item.key}><span className={item.configured ? "integration-dot connected" : "integration-dot"} /><span><strong>{item.label}</strong><small>{item.configured ? "Connected" : "Not connected"}</small></span></div>)}</div>
+          <div className="readiness-title"><div><span className="eyebrow">{ar ? "المحركات" : "Video engines"}</span><h2>{status?.environment.productionReady ? (ar ? "جاهزية الإنتاج" : "Production ready") : (ar ? "يحتاج انتباه" : "Needs attention")}</h2></div><span className={status?.environment.productionReady ? "readiness-light ready" : "readiness-light"}/></div>
+          <div className="readiness-list">{providers.map((p) => <div key={p.id}><span className={p.configured ? "integration-dot connected" : "integration-dot"}/><span><strong>{p.name}</strong><small>{p.configured ? (ar ? "جاهز" : "Ready") : (ar ? "غير مربوط" : "Not configured")}{p.isDefault ? " · default" : ""}</small></span></div>)}</div>
           <Link className="action-link ghost" href="/integrations">{ar ? "إدارة التكاملات" : "Manage integrations"}</Link>
         </aside>
       </section>
 
-      <section className="card workflow-card">
-        <div className="dashboard-section-head"><div><span className="eyebrow">{ar ? "مسار واحد واضح" : "One clear workflow"}</span><h2>{ar ? "من الفكرة إلى منشور اجتماعي" : "From idea to social post"}</h2></div><p className="dim">{ar ? "التوليد المدفوع والنشر ينتظران تأكيدك دائمًا." : "Paid generation and publishing always wait for your confirmation."}</p></div>
-        <ol>{(ar ? ["فكرة","خطة","توليد","مراجعة","تجميع","اعتماد","مشاركة"] : WORKFLOW).map((step, index) => <li key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong></li>)}</ol>
+      <section className="dashboard-grid" style={{ marginTop: 18 }}>
+        <article className="card">
+          <div className="dashboard-section-head"><div><span className="eyebrow">{ar ? "المشاريع" : "Projects"}</span><h2>{ar ? "عوالم المحتوى" : "Content worlds"}</h2></div><Link className="text-link" href="/projects">{ar ? "عرض الكل" : "View all"}</Link></div>
+          <div className="dashboard-project-list">{projects.slice(0,4).map((p) => <Link key={p.id} href={`/studio?project=${p.id}`} className="dashboard-project"><span className="project-thumb">{p.icon ?? "🎬"}</span><span><strong>{ar ? p.nameAr ?? p.name : p.name}</strong><small>{p.episodeCount} {ar ? "حلقة" : "episodes"} · {p.kind.replaceAll("_"," ")}</small></span><span className="project-arrow">→</span></Link>)}</div>
+        </article>
+        <article className="card">
+          <div className="dashboard-section-head"><div><span className="eyebrow">{ar ? "العمليات الحية" : "Live operations"}</span><h2>{ar ? "ماذا يحدث الآن؟" : "What is happening now?"}</h2></div><Link className="text-link" href="/monitoring">{ar ? "المراقبة" : "Monitoring"}</Link></div>
+          {active.length === 0 ? <p className="dim">{ar ? "لا توجد مهام نشطة حاليًا." : "No active production jobs right now."}</p> : active.slice(0,4).map((p) => <div className="ops-failure" key={p.id}><strong>{p.episodeTitle ?? p.dish}</strong><span className="dim">{p.projectName ?? "MiniBites"} · {p.status} · {p.shots.filter((s) => s.status === "completed").length}/{p.shots.length} shots</span></div>)}
+        </article>
       </section>
 
-      {missing.length > 0 && <section className="missing-panel"><div><span className="eyebrow">Still optional</span><h2>What remains to complete every integration</h2><p>MiniBites can already create and prepare social-ready MP4 files. These external connections expand storage or direct publishing.</p></div><div>{missing.map((item) => <article key={item.key}><span className="integration-dot" /><div><strong>{item.label}</strong><p>{item.detail}</p></div></article>)}</div></section>}
+      <section className="card workflow-card" style={{ marginTop: 18 }}><div className="dashboard-section-head"><div><span className="eyebrow">{ar ? "مسار كسواني" : "Kiswani workflow"}</span><h2>{ar ? "من الفكرة إلى التعلم" : "From idea to learning loop"}</h2></div><p className="dim">{ar ? "التوليد المدفوع والنشر ينتظران تأكيدك." : "Paid generation and publishing always wait for your confirmation."}</p></div><ol>{(ar ? ["فكرة","خطة","توليد","مراجعة","تجميع","اعتماد","نشر","قياس"] : WORKFLOW).map((step,index)=><li key={step}><span>{String(index+1).padStart(2,"0")}</span><strong>{step}</strong></li>)}</ol></section>
     </>}
   </main>;
 }

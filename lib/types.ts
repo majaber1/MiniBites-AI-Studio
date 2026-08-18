@@ -1,5 +1,6 @@
 // ---------------------------------------------------------------------------
-// MiniBites AI Studio — core domain types
+// Kiswani AI Studio — core domain types
+// Backward-compatible with MiniBites productions.
 // ---------------------------------------------------------------------------
 
 export type AgentId =
@@ -24,6 +25,53 @@ export interface AgentState {
   finishedAt?: string;
   note?: string;
   logs: string[];
+}
+
+export type ProjectKind = "mini_food" | "character_series" | "commercial_campaign" | "general_video";
+export type ProjectStatus = "active" | "paused" | "archived";
+
+export interface ProjectCharacter {
+  id: string;
+  name: string;
+  displayNameAr?: string;
+  role: string;
+  dialect?: string;
+  voiceStyle?: string;
+  visualNotes: string;
+  personality?: string;
+  catchphrases?: string[];
+  referenceImageUrls?: string[];
+}
+
+export interface ProjectBible {
+  concept: string;
+  language: "ar" | "en" | "mixed";
+  dialects?: string[];
+  visualStyle: string;
+  aspectRatio: "9:16" | "16:9" | "1:1";
+  defaultDurationSeconds: number;
+  locations?: string[];
+  tone?: string;
+  continuityRules?: string[];
+  negativeRules?: string[];
+  characters?: ProjectCharacter[];
+}
+
+export interface StudioProject {
+  id: string;
+  slug: string;
+  name: string;
+  nameAr?: string;
+  icon?: string;
+  kind: ProjectKind;
+  status: ProjectStatus;
+  description: string;
+  descriptionAr?: string;
+  bible: ProjectBible;
+  createdAt: string;
+  updatedAt: string;
+  ownerKey: string;
+  systemPreset?: boolean;
 }
 
 export type ShotStatus =
@@ -95,7 +143,16 @@ export interface PublishState {
 
 export interface Production {
   id: string;
+  // Legacy field kept for full backward compatibility. For non-food projects it
+  // stores the episode/video working title.
   dish: string;
+  episodeTitle?: string;
+  episodeNumber?: number;
+  projectId?: string;
+  projectName?: string;
+  projectKind?: ProjectKind;
+  // Immutable snapshot used to keep an episode stable even if the Project Bible changes later.
+  projectBible?: ProjectBible;
   description?: string;
   style: CreativeStyle;
   storyMode: StoryMode;
@@ -107,8 +164,10 @@ export interface Production {
   status: ProductionStatus;
   provider: string;
   providerIsMock: boolean;
-  providerChoice?: ProviderChoice; // per-production override of VIDEO_PROVIDER
+  providerChoice?: ProviderChoice;
   planSource: "llm" | "template";
+  // Legacy names used by MiniBites. In character/general projects these map to
+  // story summary and production brief respectively.
   recipeSummary?: string;
   miniatureBrief?: string;
   visualBible?: {
@@ -125,7 +184,7 @@ export interface Production {
   finalVideoUrl?: string;
   providerFinalVideoUrl?: string;
   mediaStorage?: { status: "not_configured" | "archived" | "failed"; provider: "vercel_blob" | "provider"; archivedAt?: string; note?: string };
-  assembled?: boolean; // true only when a real merged single MP4 exists
+  assembled?: boolean;
   assemblyJobId?: string;
   publishTitle?: string;
   publishCaption?: string;
@@ -147,7 +206,7 @@ export interface Production {
   approvedAt?: string;
   publish: PublishState[];
   error?: string;
-  ownerKey: string; // hashed access identity (never a secret)
+  ownerKey: string;
   usage: {
     submittedShots: number;
     completedShots: number;
