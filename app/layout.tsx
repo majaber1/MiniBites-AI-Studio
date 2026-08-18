@@ -4,10 +4,11 @@ import AppShell from "@/components/AppShell";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import "./globals.css";
 import "./creator.css";
+import "./kiswani.css";
 
 export const metadata: Metadata = {
-  title: "MiniBites Studio — Tiny food, big stories",
-  description: "Agent-driven production studio for real miniature-cooking shorts.",
+  title: "Kiswani AI Studio — Create, publish, learn",
+  description: "AI production studio for recurring series, campaigns and short-form video projects.",
   icons: { icon: "/favicon.svg" },
 };
 export const viewport: Viewport = { themeColor: "#fffaf5" };

@@ -1,4 +1,4 @@
-import type { Production } from "../types";
+import type { Production, StudioProject } from "../types";
 import type { Store } from "./index";
 
 /** Durable store backed by the Upstash Redis REST API (no SDK required). */
@@ -10,10 +10,7 @@ export class UpstashStore implements Store {
   private async cmd<T = unknown>(command: (string | number)[]): Promise<T> {
     const res = await fetch(this.url, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${this.token}`, "Content-Type": "application/json" },
       body: JSON.stringify(command),
       cache: "no-store",
     });
@@ -23,6 +20,7 @@ export class UpstashStore implements Store {
   }
 
   async getProduction(id: string) {
+    // Production key intentionally remains mb:* to preserve all existing data.
     const raw = await this.cmd<string | null>(["GET", `mb:prod:${id}`]);
     return raw ? (JSON.parse(raw) as Production) : null;
   }
@@ -32,7 +30,7 @@ export class UpstashStore implements Store {
     await this.cmd(["ZADD", "mb:all", Date.parse(p.createdAt), p.id]);
   }
   async listProductions(ownerKey: string) {
-    const ids = await this.cmd<string[]>(["ZREVRANGE", `mb:owner:${ownerKey}`, 0, 49]);
+    const ids = await this.cmd<string[]>(["ZREVRANGE", `mb:owner:${ownerKey}`, 0, 99]);
     const out: Production[] = [];
     for (const id of ids ?? []) {
       const p = await this.getProduction(id);
@@ -49,6 +47,25 @@ export class UpstashStore implements Store {
     }
     return out;
   }
+
+  async getProject(id: string) {
+    const raw = await this.cmd<string | null>(["GET", `ks:project:${id}`]);
+    return raw ? (JSON.parse(raw) as StudioProject) : null;
+  }
+  async saveProject(project: StudioProject) {
+    await this.cmd(["SET", `ks:project:${project.id}`, JSON.stringify(project)]);
+    await this.cmd(["ZADD", `ks:projects:${project.ownerKey}`, Date.parse(project.updatedAt), project.id]);
+  }
+  async listProjects(ownerKey: string) {
+    const ids = await this.cmd<string[]>(["ZREVRANGE", `ks:projects:${ownerKey}`, 0, 99]);
+    const out: StudioProject[] = [];
+    for (const id of ids ?? []) {
+      const project = await this.getProject(id);
+      if (project) out.push(project);
+    }
+    return out;
+  }
+
   async incrCounter(key: string, ttlSeconds: number) {
     const n = await this.cmd<number>(["INCR", `mb:ctr:${key}`]);
     if (n === 1) await this.cmd(["EXPIRE", `mb:ctr:${key}`, ttlSeconds]);

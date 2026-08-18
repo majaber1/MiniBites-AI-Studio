@@ -1,4 +1,4 @@
-import type { Production } from "../types";
+import type { Production, StudioProject } from "../types";
 import type { Store } from "./index";
 
 /** NON-DURABLE store for local development only. */
@@ -6,22 +6,22 @@ export class MemoryStore implements Store {
   readonly durable = false;
   readonly name = "memory (non-durable — configure Upstash Redis for production)";
   private productions = new Map<string, Production>();
+  private projects = new Map<string, StudioProject>();
   private counters = new Map<string, { n: number; exp: number }>();
   private locks = new Map<string, { token: string; exp: number }>();
 
-  async getProduction(id: string) {
-    return this.productions.get(id) ?? null;
-  }
-  async saveProduction(p: Production) {
-    this.productions.set(p.id, p);
-  }
+  async getProduction(id: string) { return this.productions.get(id) ?? null; }
+  async saveProduction(p: Production) { this.productions.set(p.id, p); }
   async listProductions(ownerKey: string) {
-    return [...this.productions.values()]
-      .filter((p) => p.ownerKey === ownerKey)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return [...this.productions.values()].filter((p) => p.ownerKey === ownerKey).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
   async listAllProductions(limit = 100) {
     return [...this.productions.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
+  }
+  async getProject(id: string) { return this.projects.get(id) ?? null; }
+  async saveProject(project: StudioProject) { this.projects.set(project.id, project); }
+  async listProjects(ownerKey: string) {
+    return [...this.projects.values()].filter((p) => p.ownerKey === ownerKey).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }
   async incrCounter(key: string, ttlSeconds: number) {
     const now = Date.now();

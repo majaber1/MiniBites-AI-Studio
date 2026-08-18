@@ -1,0 +1,8 @@
+/* Kiswani V4 additions only. Existing MiniBites visual system remains authoritative. */
+.workflow-card ol{grid-template-columns:repeat(8,minmax(0,1fr))}
+.note>span,.note>small{display:block;margin-top:4px}
+.readiness-card>label{display:grid;gap:7px;margin:12px 0;color:var(--muted);font-size:.82rem;font-weight:700}
+.readiness-card input[type=number]{width:100%;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:13px;padding:13px 15px;font:500 .95rem inherit}
+.readiness-list label{padding:9px 0;border-bottom:1px solid var(--line)}
+@media(max-width:900px){.workflow-card ol{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:560px){.workflow-card ol{grid-template-columns:repeat(2,minmax(0,1fr))}}
