@@ -57,19 +57,23 @@ export async function POST(req: Request) {
   const clientRequestId = body?.clientRequestId?.trim() ?? "";
   if (!/^[a-zA-Z0-9_-]{8,100}$/.test(clientRequestId)) return Response.json({ error: "This creation request is missing a valid request ID. Refresh the studio and try again." }, { status: 400 });
 
+  const store = getStore();
+  if (process.env.NODE_ENV === "production" && !store.durable) return Response.json({ error: "Production storage is not ready. Configure Upstash Redis, then redeploy." }, { status: 503 });
+  const owner = ownerKey(req);
+  const project = await resolveProject(owner, body?.projectId);
+
   let providerChoice: ProviderChoice | undefined;
   if (body?.provider !== undefined && body.provider !== "" && body.provider !== "auto") {
     if (!["fal", "wan", "mock", "google"].includes(body.provider)) return Response.json({ error: "Invalid provider. Use fal, google, wan, mock, or auto." }, { status: 400 });
     providerChoice = body.provider as ProviderChoice;
   }
+  if (!providerChoice && project.defaultProvider) {
+    const projectDefault = getVideoProvider(project.defaultProvider);
+    if (projectDefault.configured) providerChoice = project.defaultProvider;
+  }
   const chosen = getVideoProvider(providerChoice);
   if (!chosen.configured) return Response.json({ error: `${chosen.name} is not configured. ${chosen.configurationHint}` }, { status: 400 });
   if (process.env.NODE_ENV === "production" && chosen.isMock) return Response.json({ error: "The test video engine is disabled in production." }, { status: 400 });
-
-  const store = getStore();
-  if (process.env.NODE_ENV === "production" && !store.durable) return Response.json({ error: "Production storage is not ready. Configure Upstash Redis, then redeploy." }, { status: 503 });
-  const owner = ownerKey(req);
-  const project = await resolveProject(owner, body?.projectId);
   const productionId = `mb_${createHash("sha256").update(`${owner}:${clientRequestId}`).digest("hex").slice(0, 20)}`;
   const existing = await store.getProduction(productionId);
   if (existing?.ownerKey === owner) return Response.json({ production: existing, duplicatePrevented: true });

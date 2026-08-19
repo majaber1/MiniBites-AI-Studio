@@ -19,10 +19,14 @@ const STYLES: Array<{ id: CreativeStyle; label: string; icon: string }> = [
 interface ProviderOption {
   id: "fal" | "wan" | "mock" | "google";
   name: string;
+  shortName: string;
+  description: string;
   configured: boolean;
   isMock: boolean;
   isDefault: boolean;
   hint?: string;
+  statusLabel: string;
+  capabilities?: { nativeAudio?: boolean; imageReference?: boolean; minSeconds?: number; maxSeconds?: number };
 }
 const ACTIVE = ["planning", "generating", "assembling"];
 
@@ -55,7 +59,12 @@ export default function StudioPage() {
       setStoryMode("funny");
       setStyle((value) => value === "asmr" || value === "macro" || value === "workshop" ? "playful" : value);
     }
-  }, [currentProject?.kind]);
+    if (currentProject?.defaultProvider) {
+      setProvider(currentProject.defaultProvider);
+    } else {
+      setProvider("auto");
+    }
+  }, [currentProject?.kind, currentProject?.defaultProvider]);
 
   const poll = useCallback(async (id: string) => {
     try {
@@ -186,7 +195,24 @@ export default function StudioPage() {
       <div className="ticket-head">{language === "ar" ? "حلقة / فيديو جديد" : "New episode / video"}</div>
       <div className="creator-options">
         <label>{language === "ar" ? "المشروع" : "Project"}<select value={projectId} onChange={(e) => { setProjectId(e.target.value); setSubject(""); }}>{projects.map((p) => <option key={p.id} value={p.id}>{p.icon ?? "🎬"} {language === "ar" ? p.nameAr ?? p.name : p.name}</option>)}</select></label>
-        <label>{language === "ar" ? "محرك الفيديو" : "Video engine"}<select value={provider} onChange={(e) => setProvider(e.target.value)}><option value="auto">{language === "ar" ? "تلقائي — الموصى به" : "Auto — recommended"}</option>{providerOptions.filter((o) => !o.isMock).map((o) => <option key={o.id} value={o.id} disabled={!o.configured}>{o.name}{o.configured ? "" : (language === "ar" ? " (غير مربوط)" : " (not configured)")}</option>)}</select></label>
+      </div>
+      <div className="form-section"><strong>{language === "ar" ? "محرك الفيديو" : "Video engine"}</strong>
+        <div className="engine-grid">
+          <button type="button" className={`engine-card${provider === "auto" ? " selected" : ""}`} onClick={() => setProvider("auto")}>
+            <span className="engine-name">Auto</span>
+            <span className="engine-desc">{language === "ar" ? "تلقائي — الموصى به" : "Recommended"}</span>
+            <span className="engine-status ready">{currentProject?.defaultProvider ? `→ ${providerOptions.find((o) => o.id === currentProject.defaultProvider)?.shortName ?? currentProject.defaultProvider}` : language === "ar" ? "تلقائي" : "Auto"}</span>
+          </button>
+          {providerOptions.filter((o) => !o.isMock).map((o) => {
+            const isProjectDefault = currentProject?.defaultProvider === o.id;
+            return <button type="button" key={o.id} className={`engine-card${provider === o.id ? " selected" : ""}${!o.configured ? " unconfigured" : ""}`} onClick={() => setProvider(o.id)}>
+              <span className="engine-name">{o.shortName}{isProjectDefault ? (language === "ar" ? " ★" : " ★") : ""}</span>
+              <span className="engine-desc">{o.description}</span>
+              <span className={`engine-status${o.configured ? " ready" : " warn"}`}>{o.statusLabel}</span>
+            </button>;
+          })}
+        </div>
+        {provider !== "auto" && !providerOptions.find((o) => o.id === provider)?.configured && <p className="warn" style={{ marginTop: 8 }}>{providerOptions.find((o) => o.id === provider)?.hint ?? (language === "ar" ? "هذا المحرك غير مربوط. تحقق من التكاملات." : "This engine is not configured. Check Integrations.")}</p>}
       </div>
 
       {currentProject && <div className="note"><strong>{currentProject.icon} {language === "ar" ? currentProject.nameAr ?? currentProject.name : currentProject.name}</strong><span>{language === "ar" ? currentProject.descriptionAr ?? currentProject.description : currentProject.description}</span>{currentProject.bible.characters?.length ? <small>{language === "ar" ? "الشخصيات: " : "Characters: "}{currentProject.bible.characters.map((c) => language === "ar" ? c.displayNameAr ?? c.name : c.name).join(" · ")}</small> : null}</div>}
@@ -200,7 +226,9 @@ export default function StudioPage() {
         <label>{language === "ar" ? "المدة" : "Length"}<select value={durationPreset} onChange={(e) => setDurationPreset(e.target.value as DurationPreset)}><option value="quick">Quick</option><option value="standard">Standard</option><option value="extended">Extended</option></select></label>
         <label>{language === "ar" ? "اللغة" : "Language"}<select value={language} onChange={(e) => setLocale(e.target.value as "en" | "ar")}><option value="en">English</option><option value="ar">العربية</option></select></label>
       </div>
-      <details className="advanced"><summary>{language === "ar" ? "اختبار فقط" : "Testing only"}</summary><label>{language === "ar" ? "محرك تجريبي" : "Test engine"}<select value={provider} onChange={(e) => setProvider(e.target.value)}><option value="auto">Auto</option>{providerOptions.filter((o) => o.isMock).map((o) => <option key={o.id} value={o.id}>{o.name} — test only</option>)}</select></label></details>
+      <details className="advanced"><summary>{language === "ar" ? "اختبار فقط" : "Testing only"}</summary>
+        <div className="engine-grid">{providerOptions.filter((o) => o.isMock).map((o) => <button type="button" key={o.id} className={`engine-card${provider === o.id ? " selected" : ""}`} onClick={() => setProvider(o.id)}><span className="engine-name">{o.shortName}</span><span className="engine-desc">{o.description}</span><span className="engine-status warn">{o.statusLabel}</span></button>)}</div>
+      </details>
       <button className="create-video" onClick={startProduction} disabled={busy || subject.trim().length < 2}>{busy ? (language === "ar" ? "جارٍ التحضير…" : "Preparing…") : (language === "ar" ? "إنشاء الخطة" : "Create plan")}</button>
     </div>}
 
@@ -227,7 +255,16 @@ function ProductionView({ production: p, onCancel, onRetry, onGenerate, onReview
     <p className="progress-copy">{progressLabel}</p>
     {p.providerIsMock && <p className="warn">MOCK provider active — this run is for testing only and produces no real video.</p>}
     {p.error && <p className="warn">{p.error}</p>}
-    {p.status === "planned" && <div className="note plan-ready"><strong>Your shot plan is ready.</strong><span>Review the storyboard. No paid generation starts until you confirm.</span><button onClick={onGenerate} disabled={busy}>{busy ? "Starting…" : p.providerIsMock ? "Run safe test" : `Generate ${p.shots.length} shots with ${p.provider}`}</button></div>}
+    {p.status === "planned" && <div className="note plan-ready"><strong>Your shot plan is ready.</strong><span>Review the storyboard. No paid generation starts until you confirm.</span>
+      <div className="preflight-info">
+        <div><small>Engine</small><strong>{p.provider}</strong></div>
+        <div><small>Shots</small><strong>{p.shots.length}</strong></div>
+        <div><small>Aspect</small><strong>9:16</strong></div>
+        <div><small>Duration</small><strong>~{p.shots.reduce((s, shot) => s + shot.seconds, 0)}s</strong></div>
+        {p.projectName && <div><small>Project</small><strong>{p.projectName}</strong></div>}
+        {p.projectBible?.characters?.length ? <div><small>Characters</small><strong>{p.projectBible.characters.length} loaded</strong></div> : null}
+      </div>
+      <button onClick={onGenerate} disabled={busy}>{busy ? "Starting…" : p.providerIsMock ? "Run safe test" : `Generate ${p.shots.length} shots with ${p.provider}`}</button></div>}
 
     <div className="grid production-grid" style={{ marginTop: 14 }}>
       <details className="card advanced-panel"><summary>Production details</summary><p className="dim">{p.projectName ?? "MiniBites"} · {p.provider} · {p.planSource === "llm" ? "AI plan" : "Reliable template plan"} · {new Date(p.createdAt).toLocaleString()}</p><p className="mono dim">{p.id}</p><h3>Workflow</h3>{p.agents.map((a) => <div key={a.id} style={{ padding: "7px 0", borderBottom: "1px solid var(--line)" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><strong style={{ fontSize: "0.92rem" }}>{a.name}</strong><StatusBadge status={a.status} /></div>{a.note && <p className="dim" style={{ margin: "4px 0 0" }}>{a.note}</p>}{a.logs.length > 0 && <div className="logbox mono" style={{ marginTop: 6 }}>{a.logs.slice(-6).map((line) => <div key={line}>{line}</div>)}</div>}</div>)}</details>

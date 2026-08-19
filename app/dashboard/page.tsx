@@ -8,7 +8,7 @@ import { api, ApiError } from "@/components/api";
 import type { IntegrationStatus, Production, StudioProject } from "@/lib/types";
 import { useLocale } from "@/components/LocaleProvider";
 
-interface ProviderOption { id: string; name: string; configured: boolean; isMock: boolean; isDefault: boolean }
+interface ProviderOption { id: string; name: string; shortName: string; description: string; configured: boolean; isMock: boolean; isDefault: boolean; statusLabel: string }
 interface StatusResponse {
   signedIn: boolean;
   integrations: IntegrationStatus[];
@@ -48,7 +48,7 @@ export default function DashboardPage() {
   const ready = useMemo(() => productions.filter((p) => ["awaiting_approval", "approved"].includes(p.status)), [productions]);
   const published = useMemo(() => productions.filter((p) => p.publish.some((e) => e.status === "published" || e.status === "processing")).length, [productions]);
   const queuedShots = useMemo(() => productions.reduce((sum, p) => sum + p.shots.filter((s) => ["submitted", "in_queue", "generating"].includes(s.status)).length, 0), [productions]);
-  const providers = status?.providers.filter((p) => !p.isMock) ?? [];
+  const providers = status?.providers ?? [];
   const connectedPublishers = status?.integrations.filter((i) => ["youtube", "tiktok", "instagram", "x-twitter", "snapchat"].includes(i.key) && i.configured).length ?? 0;
 
   return <main className="wrap dashboard-page">
@@ -74,7 +74,7 @@ export default function DashboardPage() {
 
         <aside className="card readiness-card">
           <div className="readiness-title"><div><span className="eyebrow">{ar ? "المحركات" : "Video engines"}</span><h2>{status?.environment.productionReady ? (ar ? "جاهزية الإنتاج" : "Production ready") : (ar ? "يحتاج انتباه" : "Needs attention")}</h2></div><span className={status?.environment.productionReady ? "readiness-light ready" : "readiness-light"}/></div>
-          <div className="readiness-list">{providers.map((p) => <div key={p.id}><span className={p.configured ? "integration-dot connected" : "integration-dot"}/><span><strong>{p.name}</strong><small>{p.configured ? (ar ? "جاهز" : "Ready") : (ar ? "غير مربوط" : "Not configured")}{p.isDefault ? " · default" : ""}</small></span></div>)}</div>
+          <div className="readiness-list">{providers.map((p) => <div key={p.id}><span className={p.configured ? "integration-dot connected" : "integration-dot"}/><span><strong>{p.shortName ?? p.name}</strong><small>{p.statusLabel ?? (p.configured ? "READY" : "NOT CONNECTED")}{p.isDefault ? " · default" : ""}</small></span></div>)}</div>
           <Link className="action-link ghost" href="/integrations">{ar ? "إدارة التكاملات" : "Manage integrations"}</Link>
         </aside>
       </section>

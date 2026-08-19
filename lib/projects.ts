@@ -1,4 +1,4 @@
-import type { ProjectBible, ProjectKind, StudioProject } from "./types";
+import type { ProjectBible, ProjectKind, ProviderChoice, StudioProject } from "./types";
 
 const now = () => new Date().toISOString();
 
@@ -70,6 +70,7 @@ export function builtinProjects(ownerKey: string): StudioProject[] {
       status: "active",
       description: "Real miniature-cooking shorts. The original Kiswani production project.",
       descriptionAr: "مقاطع طبخ مصغّر واقعية — المشروع الأصلي داخل استوديو كسواني.",
+      defaultProvider: "fal",
       bible: defaultBible("mini_food"),
       createdAt: stamp,
       updatedAt: stamp,
@@ -86,6 +87,7 @@ export function builtinProjects(ownerKey: string): StudioProject[] {
       status: "active",
       description: "Jordanian Bedouin × Saudi character comedy built for recurring vertical episodes.",
       descriptionAr: "كوميديا شخصيات أردنية بدوية × سعودية مصممة كسلسلة حلقات قصيرة متكررة.",
+      defaultProvider: "google",
       bible: {
         ...defaultBible("character_series"),
         concept: "كوميديا يومية خفيفة تجمع شخصية أردنية بدوية وشخصية سعودية في مواقف خليجية/أردنية، مع احترام اللهجتين والثقافتين.",
@@ -152,6 +154,7 @@ export function makeProject(input: {
   nameAr?: string;
   kind: ProjectKind;
   description?: string;
+  defaultProvider?: ProviderChoice;
   ownerKey: string;
 }): StudioProject {
   const stamp = now();
@@ -168,6 +171,7 @@ export function makeProject(input: {
     kind: input.kind,
     status: "active",
     description: input.description?.trim() || "Kiswani AI Studio project",
+    defaultProvider: input.defaultProvider,
     bible: defaultBible(input.kind),
     createdAt: stamp,
     updatedAt: stamp,
