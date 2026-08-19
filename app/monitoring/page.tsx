@@ -10,9 +10,12 @@ import type { Production } from "@/lib/types";
 interface ProviderOption {
   id: "fal" | "google" | "wan" | "mock";
   name: string;
+  shortName: string;
+  description: string;
   configured: boolean;
   isMock: boolean;
   isDefault: boolean;
+  statusLabel: string;
   capabilities?: { nativeAudio?: boolean; imageReference?: boolean; minSeconds?: number; maxSeconds?: number };
 }
 interface StatusResponse { providers: ProviderOption[]; environment: { productionReady: boolean; missingRequired: string[] } }
@@ -84,20 +87,24 @@ export default function MonitoringPage() {
           {active.length === 0 ? <p className="dim">{ar ? "لا توجد مهام نشطة الآن." : "No active jobs right now."}</p> : active.map((p) => {
             const current = stageIndex(p.status);
             return <div key={p.id} className="card" style={{ marginTop: 12 }}>
-              <div className="dashboard-section-head"><div><strong>{p.episodeTitle ?? p.dish}</strong><p className="dim">{p.projectName ?? "MiniBites"} · {p.provider}</p></div><StatusBadge status={p.status} /></div>
+              <div className="dashboard-section-head"><div><strong>{p.episodeTitle ?? p.dish}</strong><p className="dim">{p.projectName ?? "MiniBites"} · Engine: {p.provider}{p.providerChoice ? ` (selected: ${p.providerChoice})` : ""}</p></div><StatusBadge status={p.status} /></div>
               <ol style={{ display: "grid", gridTemplateColumns: "repeat(7,minmax(0,1fr))", gap: 6, padding: 0, listStyle: "none" }}>{pipeline.map((step, index) => <li key={step} className={index < current ? "note" : index === current ? "warn" : "dim"} style={{ padding: 8, textAlign: "center", borderRadius: 10 }}><small>{index < current ? "✓" : index === current ? "●" : "○"} {step}</small></li>)}</ol>
-              <div className="readiness-list">{p.shots.map((shot) => <div key={shot.id}><span className={`integration-dot ${shot.status === "completed" ? "connected" : ""}`} /><span><strong>Shot {String(shot.index).padStart(2, "0")}</strong><small>{shot.status}{shot.queuePosition ? ` · queue #${shot.queuePosition}` : ""}{shot.error ? ` · ${shot.error}` : ""}</small></span></div>)}</div>
+              <div className="readiness-list">{p.shots.map((shot) => <div key={shot.id}><span className={`integration-dot ${shot.status === "completed" ? "connected" : ""}`} /><span><strong>Shot {String(shot.index).padStart(2, "0")}</strong><small>{shot.status}{shot.providerJobId ? ` · ${shot.providerJobId.slice(0, 16)}…` : ""}{shot.queuePosition ? ` · queue #${shot.queuePosition}` : ""}{shot.estimatedCostUsd ? ` · ~$${shot.estimatedCostUsd.toFixed(2)}` : ""}{shot.error ? ` · ${shot.error}` : ""}</small></span></div>)}</div>
             </div>;
           })}
         </article>
 
         <aside className="card readiness-card">
           <div className="readiness-title"><div><span className="eyebrow">{ar ? "محاكاة — لا تنفذ شيئًا" : "Simulation — no work is submitted"}</span><h2>{ar ? "لو بدأنا الآن" : "If we start now"}</h2></div></div>
-          <label>{ar ? "محرك الفيديو" : "Video engine"}<select value={providerId} onChange={(e) => setProviderId(e.target.value)}><option value="auto">Auto — recommended</option>{status?.providers.filter((p) => !p.isMock).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+          <label>{ar ? "محرك الفيديو" : "Video engine"}<select value={providerId} onChange={(e) => setProviderId(e.target.value)}><option value="auto">Auto — recommended</option>{status?.providers.filter((p) => !p.isMock).map((p) => <option key={p.id} value={p.id}>{p.shortName ?? p.name} — {p.statusLabel ?? (p.configured ? "READY" : "NOT CONNECTED")}</option>)}</select></label>
           <label>{ar ? "عدد المشاهد" : "Shots"}<input type="number" min={3} max={12} value={shotCount} onChange={(e) => setShotCount(Math.min(12, Math.max(3, Number(e.target.value) || 8)))} /></label>
           <div className={selectedProvider?.configured ? "note" : "warn"}>
             <strong>{selectedProvider?.configured ? (ar ? "المحرك جاهز" : "Provider ready") : (ar ? "المحرك غير مربوط" : "Provider not configured")}</strong>
             <p>{selectedProvider?.name ?? "—"}</p>
+            {selectedProvider?.capabilities && <p className="dim" style={{ fontSize: ".78rem", marginTop: 4 }}>
+              Audio: {selectedProvider.capabilities.nativeAudio ? (ar ? "مدعوم" : "Native audio supported") : (ar ? "غير متوفر" : "Not available")}
+              {" · "}Aspect: 9:16
+            </p>}
           </div>
           <ol style={{ paddingInlineStart: 20 }}>
             <li>{ar ? `تخطيط ${shotCount} مشاهد` : `Plan ${shotCount} shots`}</li>

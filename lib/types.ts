@@ -68,6 +68,7 @@ export interface StudioProject {
   description: string;
   descriptionAr?: string;
   bible: ProjectBible;
+  defaultProvider?: ProviderChoice;
   createdAt: string;
   updatedAt: string;
   ownerKey: string;
