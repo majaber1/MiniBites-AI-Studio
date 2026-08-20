@@ -48,12 +48,25 @@ export function defaultBible(kind: ProjectKind): ProjectBible {
     aspectRatio: "9:16",
     defaultDurationSeconds: 38,
     tone: "Satisfying, tactile and premium.",
+    defaultAudioMode: "native",
+    kitchenReference: {
+      id: "minibites-master-kitchen",
+      name: "MiniBites 1:12 Master Kitchen",
+      scale: "1:12 miniature scale",
+      environment: "Real working miniature kitchen with stainless steel mini stove, wooden prep counter, miniature cookware, tiny utensils, and macro studio staging.",
+      lighting: "Soft warm natural daylight with gentle food-studio highlights",
+      palette: "Warm wood, polished steel, terracotta and fresh food tones",
+      approved: true,
+      notes: "Permanent kitchen anchor. Maintain same stove, board, pan, and adult hands across all shots.",
+      prompt: "Ultra-realistic macro photograph of a 1:12 scale real working miniature kitchen. Wooden countertop, miniature stainless steel burner stove, tiny copper pan, micro chef knife, mini ceramic plate, realistic edible ingredients in tiny portions, soft natural lighting, shallow depth of field, 9:16 vertical composition.",
+    },
     continuityRules: [
       "Real adult hands only.",
       "Use the same 1:12 kitchen, stove, board, utensils and serving plate across the episode.",
       "All ingredients are real and edible.",
+      "Maintain native kitchen ASMR: knife chops, sizzling, utensil taps, liquid bubbling.",
     ],
-    negativeRules: ["No cartoon chefs", "No toy people", "No slideshow stills", "No normal-size cookware"],
+    negativeRules: ["No cartoon chefs", "No toy people", "No slideshow stills", "No normal-size cookware", "No voiceover narration"],
   };
 }
 
@@ -94,6 +107,7 @@ export function builtinProjects(ownerKey: string): StudioProject[] {
         dialects: ["Jordanian Bedouin Arabic", "Saudi Arabic"],
         locations: ["Riyadh", "Jordanian desert", "Bedouin tent", "Saudi majlis", "farm", "city streets"],
         tone: "طقطقة محترمة، فزعة، كرم، مواقف يومية، بدون إساءة للشعوب أو القبائل.",
+        defaultAudioMode: "hybrid",
         characters: [
           {
             id: "dheeban",
@@ -102,8 +116,20 @@ export function builtinProjects(ownerKey: string): StudioProject[] {
             role: "Jordanian Bedouin lead",
             dialect: "Jordanian Bedouin",
             voiceStyle: "Warm gravelly male voice, confident, dry humor.",
+            voiceProfile: {
+              voiceName: "Fenrir",
+              direction: "Jordanian Bedouin direction, male, warm, slightly gravelly, confident, natural humor, moderate pace",
+              language: "ar",
+              dialect: "Jordanian Bedouin Arabic",
+            },
             visualNotes: "Anthropomorphic fluffy sheep, Jordanian Bedouin styling, stable face and body proportions, traditional red-and-white headscarf and desert details.",
+            wardrobe: "Traditional Jordanian Bedouin red-and-white shemagh/keffiyeh with black agal, desert vest, natural textured wool.",
             personality: "فزعة، كريم، عنيد شوي، يرد بسرعة ويحب يثبت إن طريقته الصح.",
+            continuityInstructions: [
+              "Always maintain identical face, horn shape, wool texture, and Jordanian red-and-white shemagh across every shot.",
+              "Never swap wardrobe with Saudi characters.",
+              "Preserve Jordanian Bedouin dialect and dry comedic timing.",
+            ],
           },
           {
             id: "fhaid",
@@ -112,8 +138,20 @@ export function builtinProjects(ownerKey: string): StudioProject[] {
             role: "Saudi lead",
             dialect: "Saudi Arabic",
             voiceStyle: "Friendly Saudi male voice, relaxed delivery, quick comedic timing.",
+            voiceProfile: {
+              voiceName: "Puck",
+              direction: "Saudi direction, male, relaxed, friendly, intelligent comedic timing, natural delivery",
+              language: "ar",
+              dialect: "Saudi Arabic",
+            },
             visualNotes: "Anthropomorphic fluffy sheep in clean Saudi thobe and shemagh, stable face, polished 3D character design.",
+            wardrobe: "Crisp white Saudi thobe, red/white or white shemagh, neat agal, bright groomed wool.",
             personality: "هادي، ذكي، يطقطق بدون ما يرفع صوته ويعرف كيف يورط ذيبان بكلمة.",
+            continuityInstructions: [
+              "Always maintain identical face, clean white thobe, and neat shemagh across every shot.",
+              "Never swap wardrobe with Jordanian characters.",
+              "Preserve Saudi dialect, relaxed cadence, and calm comedic delivery.",
+            ],
           },
           {
             id: "manfoosha",
@@ -122,8 +160,19 @@ export function builtinProjects(ownerKey: string): StudioProject[] {
             role: "Scene-stealing supporting character",
             dialect: "Arabic",
             voiceStyle: "Expressive female comic voice.",
+            voiceProfile: {
+              voiceName: "Aoede",
+              direction: "Arabic direction, female, expressive, fast comic timing, natural delivery",
+              language: "ar",
+              dialect: "Arabic",
+            },
             visualNotes: "Fluffy sheep with a distinctive feminine silhouette/accessory; never over-humanized; same face and wool every episode.",
+            wardrobe: "Distinctive feminine accessory/scarf, neatly styled fluffy wool.",
             personality: "أذكى من الاثنين وغالبًا هي اللي تقفل النقاش بالنهاية.",
+            continuityInstructions: [
+              "Maintain consistent wool volume, feminine accessory, and expressive facial silhouette.",
+              "Sharp, witty Arabic delivery.",
+            ],
           },
         ],
         continuityRules: [

@@ -30,6 +30,25 @@ export interface AgentState {
 export type ProjectKind = "mini_food" | "character_series" | "commercial_campaign" | "general_video";
 export type ProjectStatus = "active" | "paused" | "archived";
 
+export interface CharacterVoiceProfile {
+  voiceName: string; // Prebuilt voice name e.g. "Fenrir", "Puck", "Orus", "Charon", "Kore", "Aoede", "Zephyr"
+  direction: string; // e.g. "Jordanian Bedouin direction, male, warm, slightly gravelly, confident, natural humor"
+  language: string; // "ar" | "en"
+  dialect?: string; // "Jordanian Bedouin Arabic" | "Saudi Arabic"
+  pitch?: string;
+  speed?: string;
+}
+
+export interface CharacterReferenceAsset {
+  id: string;
+  url: string;
+  thumbnailUrl?: string;
+  label?: string;
+  approved: boolean;
+  approvedAt?: string;
+  prompt?: string;
+}
+
 export interface ProjectCharacter {
   id: string;
   name: string;
@@ -37,11 +56,32 @@ export interface ProjectCharacter {
   role: string;
   dialect?: string;
   voiceStyle?: string;
+  voiceProfile?: CharacterVoiceProfile;
   visualNotes: string;
+  wardrobe?: string;
   personality?: string;
   catchphrases?: string[];
   referenceImageUrls?: string[];
+  referenceAssets?: CharacterReferenceAsset[];
+  continuityInstructions?: string[];
 }
+
+export interface ProjectKitchenReference {
+  id: string;
+  name: string;
+  imageUrl?: string;
+  thumbnailUrl?: string;
+  prompt?: string;
+  approved: boolean;
+  approvedAt?: string;
+  scale?: string; // "1:12 miniature scale"
+  environment?: string; // "real working miniature kitchen, same stove, same counter, same utensils..."
+  lighting?: string;
+  palette?: string;
+  notes?: string;
+}
+
+export type AudioMode = "native" | "exact_tts" | "hybrid";
 
 export interface ProjectBible {
   concept: string;
@@ -55,6 +95,10 @@ export interface ProjectBible {
   continuityRules?: string[];
   negativeRules?: string[];
   characters?: ProjectCharacter[];
+  kitchenReference?: ProjectKitchenReference;
+  referenceImageUrls?: string[];
+  referenceNotes?: string;
+  defaultAudioMode?: AudioMode;
 }
 
 export interface StudioProject {
@@ -94,6 +138,29 @@ export interface ShotVersion {
   accepted: boolean;
 }
 
+export interface ShotDialogueItem {
+  speakerId: string;
+  speakerName?: string;
+  exactText: string;
+  textAr?: string;
+  language?: "ar" | "en" | "mixed";
+  dialect?: string;
+  voiceName?: string;
+  voiceDirection?: string;
+  audioUrl?: string;
+  startOffset?: number;
+  duration?: number;
+  approved?: boolean;
+}
+
+export interface ShotAudioPlan {
+  audioMode: AudioMode;
+  ambient?: string;
+  soundEffects?: string[];
+  dialogue?: ShotDialogueItem[];
+  musicPolicy?: "none" | "subtle_background" | "dramatic_sting" | "cultural_acoustic";
+}
+
 export interface Shot {
   id: string;
   index: number;
@@ -107,6 +174,9 @@ export interface Shot {
   providerJobId?: string;
   queuePosition?: number;
   videoUrl?: string;
+  audioUrl?: string;
+  audioPlan?: ShotAudioPlan;
+  referenceImageUrl?: string;
   error?: string;
   attempts: number;
   estimatedCostUsd?: number;
@@ -136,7 +206,7 @@ export type PublishPlatform = "youtube" | "tiktok" | "instagram" | "x" | "snapch
 
 export interface PublishState {
   platform: PublishPlatform;
-  status: "not_connected" | "ready" | "published" | "failed" | "processing";
+  status: "not_connected" | "ready" | "published" | "failed" | "processing" | "auth_required" | "review_required" | "manual_only";
   url?: string;
   externalId?: string;
   requiredAction?: string;
@@ -159,6 +229,8 @@ export interface Production {
   storyMode: StoryMode;
   durationPreset: DurationPreset;
   language: "en" | "ar";
+  audioMode?: AudioMode;
+  kitchenReference?: ProjectKitchenReference;
   createdAt: string;
   updatedAt: string;
   archivedAt?: string;
@@ -219,7 +291,9 @@ export interface Production {
 export interface IntegrationStatus {
   key: string;
   label: string;
+  category?: "media" | "social" | "core";
   configured: boolean;
+  status?: "connected" | "ready" | "not_connected" | "auth_required" | "review_required" | "manual_only" | "error";
   detail: string;
   requiredEnv: string[];
 }

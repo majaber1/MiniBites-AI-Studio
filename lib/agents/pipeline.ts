@@ -8,19 +8,8 @@ import { createStudioPlan } from "../studio-planner";
 import { getStore } from "../store";
 import { falAssemblyConfigured, getMergeStatus, getMergeResult, submitMerge } from "../assembly";
 import { archiveFinalVideo, durableMediaConfigured } from "../media-storage";
-
-export const AGENT_DEFS: Array<{ id: AgentId; name: string; role: string }> = [
-  { id: "orchestrator", name: "Orchestrator", role: "Validates the request and coordinates every stage." },
-  { id: "recipe", name: "Story / Recipe Agent", role: "Builds the narrative or recipe foundation appropriate to the project." },
-  { id: "miniature_director", name: "World / Style Director", role: "Applies the Project Bible, character references, world and visual continuity." },
-  { id: "shot_director", name: "Shot Director", role: "Builds the complete 9:16 storyboard." },
-  { id: "prompt", name: "Prompt Agent", role: "Writes provider-ready prompts and continuity guards." },
-  { id: "video", name: "Video Agent", role: "Submits real jobs to the selected provider and tracks them." },
-  { id: "continuity", name: "Continuity Agent", role: "Checks the shared prompt contract across shots." },
-  { id: "quality", name: "Quality Agent", role: "Routes generated clips to honest automated checks and human review." },
-  { id: "assembly", name: "Assembly Agent", role: "Combines accepted shots into one vertical MP4." },
-  { id: "publishing", name: "Publishing Agent", role: "Prepares platform-specific social publishing packages." },
-];
+import { AGENT_DEFS } from "./defs";
+export { AGENT_DEFS };
 
 const MINI_FOOD_STYLE_PROMPT =
   "Ultra-realistic macro food videography. Real adult human hands cooking with real working dollhouse-scale (1:12) kitchen tools and real edible ingredients in tiny quantities. Continuous physical cooking motion. Macro close-up, shallow depth of field, soft natural kitchen light, vertical 9:16.";
@@ -111,9 +100,7 @@ function promptContract(p: Production, action: string, camera: string) {
     prompt: `${GENERAL_STYLE_PROMPT} Project: ${p.projectName ?? "Kiswani project"}. Project Bible: ${bible}. Creative direction: ${STYLE_DETAILS[p.style]}. Story mode: ${p.storyMode}. Video idea: ${p.episodeTitle ?? p.dish}. Scene: ${action}. Camera: ${camera}.`,
     negativePrompt: `${GENERAL_NEGATIVE}${p.projectBible?.negativeRules?.length ? `, ${p.projectBible.negativeRules.join(", ")}` : ""}`,
   };
-}
-
-export function createProduction(subject: string, language: "en" | "ar", ownerKey: string, providerChoice?: ProviderChoice, productionId?: string, options: CreationOptions = {}): Production {
+}export function createProduction(subject: string, language: "en" | "ar", ownerKey: string, providerChoice?: ProviderChoice, productionId?: string, options: CreationOptions = {}): Production {
   const provider = getVideoProvider(providerChoice);
   const now = new Date().toISOString();
   const kind = options.projectKind ?? "mini_food";
@@ -130,6 +117,8 @@ export function createProduction(subject: string, language: "en" | "ar", ownerKe
     storyMode: options.storyMode ?? (kind === "character_series" ? "funny" : "satisfying"),
     durationPreset: options.durationPreset ?? "standard",
     language,
+    audioMode: options.projectBible?.defaultAudioMode ?? (kind === "character_series" ? "hybrid" : "native"),
+    kitchenReference: options.projectBible?.kitchenReference ? structuredClone(options.projectBible.kitchenReference) : undefined,
     createdAt: now,
     updatedAt: now,
     status: "planning",
@@ -145,7 +134,7 @@ export function createProduction(subject: string, language: "en" | "ar", ownerKe
       { platform: "tiktok", status: "not_connected", requiredAction: "Connect an approved TikTok developer app (see Integrations)." },
       { platform: "instagram", status: "not_connected", requiredAction: "Connect an Instagram Business account via Facebook Graph API (see Integrations)." },
       { platform: "x", status: "not_connected", requiredAction: "Connect an X/Twitter developer app with media upload scope (see Integrations)." },
-      { platform: "snapchat", status: "not_connected", requiredAction: "Connect a Snapchat developer app (see Integrations)." },
+      { platform: "snapchat", status: "manual_only", requiredAction: "Direct organic Spotlight publishing uses manual handoff (Download MP4 + Copy Caption)." },
     ],
     ownerKey,
     usage: { submittedShots: 0, completedShots: 0, failedShots: 0, estimatedCostUsd: 0 },
@@ -202,7 +191,21 @@ export async function advanceProduction(p: Production): Promise<Production> {
       start(p, "prompt");
       p.shots = plan.shots.map((s, i): Shot => {
         const contract = promptContract(p, s.action, s.camera);
-        return { id: `shot_${i + 1}`, index: i + 1, seconds: Math.min(Math.max(Math.round(s.seconds), 3), 8), action: s.action, camera: s.camera, sound: s.sound, prompt: contract.prompt, negativePrompt: contract.negativePrompt, status: "planned", attempts: 0 };
+        const audioPlan = s.audioPlan ?? (p.audioMode === "hybrid" && s.dialogue ? { audioMode: "hybrid" as const, dialogue: s.dialogue, ambient: s.sound } : { audioMode: p.audioMode ?? "native" as const, ambient: s.sound });
+        return {
+          id: `shot_${i + 1}`,
+          index: i + 1,
+          seconds: Math.min(Math.max(Math.round(s.seconds), 3), 8),
+          action: s.action,
+          camera: s.camera,
+          sound: s.sound,
+          prompt: contract.prompt,
+          negativePrompt: contract.negativePrompt,
+          status: "planned",
+          attempts: 0,
+          audioPlan,
+          referenceImageUrl: p.kitchenReference?.imageUrl ?? p.projectBible?.referenceImageUrls?.[0],
+        };
       });
       done(p, "prompt", source === "llm" ? "Prompts written by the project-aware planning LLM." : "Project template prompts (no LLM key configured or planner fallback)." );
       if (!provider.configured) {
@@ -235,13 +238,23 @@ export async function startGeneration(p: Production): Promise<Production> {
   p.updatedAt = new Date().toISOString(); await getStore().saveProduction(p); return p;
 }
 
-export interface ShotPlanEdit { id?: string; seconds: number; action: string; camera: string; sound: string }
+export interface ShotPlanEdit {
+  id?: string;
+  seconds: number;
+  action: string;
+  camera: string;
+  sound: string;
+  dialogue?: Shot["audioPlan"] extends { dialogue?: infer D } ? D : never;
+  audioPlan?: Shot["audioPlan"];
+  referenceImageUrl?: string;
+}
+
 export async function reviseShotPlan(p: Production, edits: ShotPlanEdit[]): Promise<Production> {
   if (p.status !== "planned") throw new Error("Shots can only be edited before generation starts.");
   if (!Array.isArray(edits) || edits.length < 3 || edits.length > 9) throw new Error("Keep between 3 and 9 shots.");
   const clean = (value: unknown, label: string, max: number) => {
     if (typeof value !== "string") throw new Error(`${label} is required.`);
-    const result = value.replace(/[<> -]/g, " ").replace(/\s+/g, " ").trim();
+    const result = value.replace(/[<>]/g, " ").replace(/\s+/g, " ").trim();
     if (!result || result.length > max) throw new Error(`${label} is empty or too long.`);
     return result;
   };
@@ -250,12 +263,27 @@ export async function reviseShotPlan(p: Production, edits: ShotPlanEdit[]): Prom
     if (!Number.isFinite(seconds) || seconds < 3 || seconds > 8) throw new Error(`Shot ${index + 1} must be 3–8 seconds.`);
     const action = clean(edit.action, `Shot ${index + 1} action`, 400);
     const camera = clean(edit.camera, `Shot ${index + 1} camera`, 200);
-    const sound = clean(edit.sound, `Shot ${index + 1} sound`, 160);
+    const sound = clean(edit.sound, `Shot ${index + 1} sound`, 250);
     const contract = promptContract(p, action, camera);
-    return { id: edit.id && /^shot_[a-zA-Z0-9_-]+$/.test(edit.id) ? edit.id : `shot_${Date.now().toString(36)}_${index + 1}`, index: index + 1, seconds, action, camera, sound, prompt: contract.prompt, negativePrompt: contract.negativePrompt, status: "planned" as const, attempts: 0 };
+    return {
+      id: edit.id && /^shot_[a-zA-Z0-9_-]+$/.test(edit.id) ? edit.id : `shot_${Date.now().toString(36)}_${index + 1}`,
+      index: index + 1,
+      seconds,
+      action,
+      camera,
+      sound,
+      prompt: contract.prompt,
+      negativePrompt: contract.negativePrompt,
+      status: "planned" as const,
+      attempts: 0,
+      audioPlan: edit.audioPlan,
+      referenceImageUrl: edit.referenceImageUrl ?? p.kitchenReference?.imageUrl,
+    };
   });
   agent(p, "shot_director").note = `${p.shots.length} creator-reviewed shots`;
-  p.updatedAt = new Date().toISOString(); await getStore().saveProduction(p); return p;
+  p.updatedAt = new Date().toISOString();
+  await getStore().saveProduction(p);
+  return p;
 }
 
 const MAX_CONCURRENT = 2;
@@ -384,7 +412,22 @@ export async function duplicateProduction(source: Production): Promise<Productio
   });
   duplicate.status = "planned"; duplicate.planSource = source.planSource; duplicate.recipeSummary = source.recipeSummary; duplicate.miniatureBrief = source.miniatureBrief;
   duplicate.visualBible = source.visualBible ? structuredClone(source.visualBible) : undefined; duplicate.publishTitle = source.publishTitle; duplicate.publishCaption = source.publishCaption; duplicate.publishHashtags = source.publishHashtags ? [...source.publishHashtags] : undefined;
-  duplicate.shots = source.shots.map((shot, index) => ({ id: `shot_${index + 1}`, index: index + 1, seconds: shot.seconds, action: shot.action, camera: shot.camera, sound: shot.sound, prompt: shot.prompt, negativePrompt: shot.negativePrompt, status: "planned", attempts: 0 }));
+  duplicate.audioMode = source.audioMode;
+  duplicate.kitchenReference = source.kitchenReference ? structuredClone(source.kitchenReference) : undefined;
+  duplicate.shots = source.shots.map((shot, index) => ({
+    id: `shot_${index + 1}`,
+    index: index + 1,
+    seconds: shot.seconds,
+    action: shot.action,
+    camera: shot.camera,
+    sound: shot.sound,
+    prompt: shot.prompt,
+    negativePrompt: shot.negativePrompt,
+    status: "planned",
+    attempts: 0,
+    audioPlan: shot.audioPlan ? structuredClone(shot.audioPlan) : undefined,
+    referenceImageUrl: shot.referenceImageUrl,
+  }));
   for (const id of ["recipe", "miniature_director", "shot_director", "prompt"] as AgentId[]) done(duplicate, id, "Reused from the source project's creator-reviewed plan.");
   agent(duplicate, "video").note = "No generated media was copied. Review the plan before starting a new paid generation.";
   duplicate.updatedAt = new Date().toISOString(); await getStore().saveProduction(duplicate); return duplicate;

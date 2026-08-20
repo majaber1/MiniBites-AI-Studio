@@ -9,6 +9,7 @@ export interface ShotInput {
   seconds: number;
   aspectRatio: "9:16";
   resolution?: string;
+  referenceImageUrl?: string;
 }
 
 export type ProviderShotStatus =

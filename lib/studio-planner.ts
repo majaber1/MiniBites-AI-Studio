@@ -84,7 +84,202 @@ async function viaGemini(project: StudioPlanProject, subject: string, language: 
 
 export function projectTemplatePlan(project: StudioPlanProject, subject: string, language: "en" | "ar", preset: "quick" | "standard" | "extended"): ShotPlan {
   const ar = language === "ar";
-  const base = [
+  const isIyal = project.id === "iyal-al-halal";
+  
+  const iyalBase = [
+    {
+      seconds: 4,
+      action: `مشهد افتتاحي سريع: ذيبان يقف مذهولاً أمام الموقف الخاص بـ «${subject}» بينما فهيد يستقبله بابتسامة هادئة.`,
+      camera: "fast establishing push-in, vertical medium shot",
+      sound: "ذيبان: «يا فهيد، وش السالفة هذي؟» + صوت البيئة",
+      dialogue: [
+        {
+          speakerId: "dheeban",
+          exactText: "يا فهيد، وش السالفة هذي؟",
+          textAr: "يا فهيد، وش السالفة هذي؟",
+          language: "ar" as const,
+          dialect: "Jordanian Bedouin Arabic",
+          voiceName: "Fenrir",
+          voiceDirection: "Jordanian Bedouin direction, male, warm, slightly gravelly, confident humor",
+        },
+      ],
+      audioPlan: {
+        audioMode: "hybrid" as const,
+        ambient: "خلفية المجلس والبيئة الطبيعية",
+        dialogue: [
+          {
+            speakerId: "dheeban",
+            exactText: "يا فهيد، وش السالفة هذي؟",
+            textAr: "يا فهيد، وش السالفة هذي؟",
+            language: "ar" as const,
+            dialect: "Jordanian Bedouin Arabic",
+            voiceName: "Fenrir",
+            voiceDirection: "Jordanian Bedouin direction, male, warm, slightly gravelly, confident humor",
+          },
+        ],
+      },
+    },
+    {
+      seconds: 5,
+      action: "فهيد يوضح الموضوع بذوق وهدوء سعودي مع حركة يد معبرة وثبات كامل في ملامح الشخصيتين وثيابهما.",
+      camera: "two-shot, eye-level, subtle handheld energy",
+      sound: "فهيد: «هذي أصولها عندنا يا ذيبان، سَمّ بالله ولا تستعجل.»",
+      dialogue: [
+        {
+          speakerId: "fhaid",
+          exactText: "هذي أصولها عندنا يا ذيبان، سَمّ بالله ولا تستعجل.",
+          textAr: "هذي أصولها عندنا يا ذيبان، سَمّ بالله ولا تستعجل.",
+          language: "ar" as const,
+          dialect: "Saudi Arabic",
+          voiceName: "Puck",
+          voiceDirection: "Saudi direction, male, relaxed, friendly, intelligent comedic timing",
+        },
+      ],
+      audioPlan: {
+        audioMode: "hybrid" as const,
+        ambient: "صوت صب القهوة وحركة هادئة",
+        dialogue: [
+          {
+            speakerId: "fhaid",
+            exactText: "هذي أصولها عندنا يا ذيبان، سَمّ بالله ولا تستعجل.",
+            textAr: "هذي أصولها عندنا يا ذيبان، سَمّ بالله ولا تستعجل.",
+            language: "ar" as const,
+            dialect: "Saudi Arabic",
+            voiceName: "Puck",
+            voiceDirection: "Saudi direction, male, relaxed, friendly, intelligent comedic timing",
+          },
+        ],
+      },
+    },
+    {
+      seconds: 5,
+      action: "ذيبان يبدي إصراره البدوي الأردني بطرافة ويبدأ في اختبار الموقف بطريقته الخاصة.",
+      camera: "reaction close-up then cut to action",
+      sound: "ذيبان: «والله ما تمشي إلا على طريقتنا، ركّز معي بس!»",
+      dialogue: [
+        {
+          speakerId: "dheeban",
+          exactText: "والله ما تمشي إلا على طريقتنا، ركّز معي بس!",
+          textAr: "والله ما تمشي إلا على طريقتنا، ركّز معي بس!",
+          language: "ar" as const,
+          dialect: "Jordanian Bedouin Arabic",
+          voiceName: "Fenrir",
+          voiceDirection: "warm, slightly gravelly, determined humor",
+        },
+      ],
+      audioPlan: {
+        audioMode: "hybrid" as const,
+        ambient: "مؤثر حركة عملية طريفة",
+      },
+    },
+    {
+      seconds: 5,
+      action: "فهيد يراقبه بتعجب ويبتسم بذكاء مع رد سريع لا يخلو من الطقطقة المحترمة.",
+      camera: "reverse angle with matching eyeline",
+      sound: "فهيد: «يا ذيبان، إذا سويتها كذا بنقعد للمغرب!»",
+      dialogue: [
+        {
+          speakerId: "fhaid",
+          exactText: "يا ذيبان، إذا سويتها كذا بنقعد للمغرب!",
+          textAr: "يا ذيبان، إذا سويتها كذا بنقعد للمغرب!",
+          language: "ar" as const,
+          dialect: "Saudi Arabic",
+          voiceName: "Puck",
+          voiceDirection: "relaxed witty cadence",
+        },
+      ],
+      audioPlan: {
+        audioMode: "hybrid" as const,
+        ambient: "ضحكة خفيفة وأصوات المحيط",
+      },
+    },
+    {
+      seconds: 5,
+      action: "تصاعد الموقف وظهور النتيجة المضحكة للمحاولة مع تركيز الكاميرا على تفاصيل المشهد.",
+      camera: "macro insert on prop, then rack focus to reaction",
+      sound: "ذيبان: «هذا الموقف بده خطة بديلة فورًا!»",
+      dialogue: [
+        {
+          speakerId: "dheeban",
+          exactText: "هذا الموقف بده خطة بديلة فورًا!",
+          textAr: "هذا الموقف بده خطة بديلة فورًا!",
+          language: "ar" as const,
+          dialect: "Jordanian Bedouin Arabic",
+          voiceName: "Fenrir",
+          voiceDirection: "surprised humorous tone",
+        },
+      ],
+      audioPlan: {
+        audioMode: "hybrid" as const,
+        ambient: "مؤثر موسيقي شرقي خفيف",
+      },
+    },
+    {
+      seconds: 5,
+      action: "ذروة الموقف: فهيد يقدم الحل السلس وذيبان يعترف بابتسامة عريضة وسط أجواء ودية.",
+      camera: "locked reaction shot with slight push",
+      sound: "فهيد: «قلت لك من البداية، البساطة سر النجاح.»",
+      dialogue: [
+        {
+          speakerId: "fhaid",
+          exactText: "قلت لك من البداية، البساطة سر النجاح.",
+          textAr: "قلت لك من البداية، البساطة سر النجاح.",
+          language: "ar" as const,
+          dialect: "Saudi Arabic",
+          voiceName: "Puck",
+          voiceDirection: "friendly triumphant delivery",
+        },
+      ],
+      audioPlan: {
+        audioMode: "hybrid" as const,
+        ambient: "نغمة رضا وراحة",
+      },
+    },
+    {
+      seconds: 5,
+      action: "منفوشة تظهر في الكادر بإطلالتها المميزة وتقفل النقاش بجملة حاسمة ومضحكة.",
+      camera: "three-quarter group shot",
+      sound: "منفوشة: «لو كثرتوا حكي بتبرد السالفة، خلصونا!»",
+      dialogue: [
+        {
+          speakerId: "manfoosha",
+          exactText: "لو كثرتوا حكي بتبرد السالفة، خلصونا!",
+          textAr: "لو كثرتوا حكي بتبرد السالفة، خلصونا!",
+          language: "ar" as const,
+          dialect: "Arabic",
+          voiceName: "Aoede",
+          voiceDirection: "expressive fast comedic timing",
+        },
+      ],
+      audioPlan: {
+        audioMode: "hybrid" as const,
+        ambient: "مؤثر قفلة كوميدي",
+      },
+    },
+    {
+      seconds: 4,
+      action: "مشهد ختامي سريع يجمع الشخصيات الثلاث بروح فكاهية دافئة ويدعو للمتابعة.",
+      camera: "short hero hold / loop-friendly final frame",
+      sound: "ذيبان وفهيد معًا: «أبشري يا منفوشة!»",
+      dialogue: [
+        {
+          speakerId: "dheeban",
+          exactText: "أبشري يا منفوشة!",
+          textAr: "أبشري يا منفوشة!",
+          language: "ar" as const,
+          dialect: "Jordanian Bedouin Arabic",
+          voiceName: "Fenrir",
+          voiceDirection: "warm laugh",
+        },
+      ],
+      audioPlan: {
+        audioMode: "hybrid" as const,
+        ambient: "نغمة ختام دافئة",
+      },
+    },
+  ];
+
+  const genericBase = [
     { seconds: 4, action: `Cold open / hook for: ${subject}. Show the recurring leads immediately in a visually clear situation.`, camera: "fast establishing push-in, vertical medium shot", sound: "short hook line + location ambience" },
     { seconds: 5, action: "Establish who wants what and the immediate situation; preserve character wardrobe and face references.", camera: "two-shot, eye-level, subtle handheld energy", sound: "brief dialogue exchange" },
     { seconds: 5, action: "First comedic or dramatic beat escalates the situation through physical action, not exposition.", camera: "reaction close-up then cut to action", sound: "dialogue + practical sound cue" },
@@ -94,8 +289,10 @@ export function projectTemplatePlan(project: StudioPlanProject, subject: string,
     { seconds: 5, action: "Main punchline / emotional payoff, with the supporting character getting a clear final beat.", camera: "three-quarter group shot", sound: "punchline + natural reaction" },
     { seconds: 4, action: "Clean ending beat that can loop into the opening and leaves room for a follow/future-episode CTA.", camera: "short hero hold / loop-friendly final frame", sound: "tag line + light ambience" },
   ];
+
+  const base = isIyal ? iyalBase : genericBase;
   const quick = [base[0], base[1], { ...base[2], seconds: 5 }, { ...base[4], seconds: 5 }, { ...base[6], seconds: 6 }, { ...base[7], seconds: 5 }];
-  const extended = [...base, { seconds: 5, action: "Extra tag scene after the payoff: one last character reaction or callback that tees up the next episode.", camera: "simple callback close-up", sound: "short callback line" }];
+  const extended = [...base, { ...base[7], seconds: 5, action: "Extra tag scene after the payoff: one last character reaction or callback that tees up the next episode.", camera: "simple callback close-up", sound: "short callback line" }];
   const shots = preset === "quick" ? quick : preset === "extended" ? extended : base;
   const names = project.bible?.characters?.map((c) => c.displayNameAr ?? c.name).join("، ") || project.name;
   return {

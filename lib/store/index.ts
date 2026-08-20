@@ -6,6 +6,7 @@ import { cleanEnv } from "@/lib/env";
 import type { Production, StudioProject } from "../types";
 import { MemoryStore } from "./memory";
 import { UpstashStore } from "./upstash";
+import { DiskStore } from "./disk";
 
 export interface Store {
   readonly durable: boolean;
@@ -39,7 +40,7 @@ export function getStore(): Store {
   if (globalThis.__kiswaniStore) return globalThis.__kiswaniStore;
   const url = cleanEnv("UPSTASH_REDIS_REST_URL");
   const token = cleanEnv("UPSTASH_REDIS_REST_TOKEN");
-  const store: Store = url && token ? new UpstashStore(url, token) : new MemoryStore();
+  const store: Store = url && token ? new UpstashStore(url, token) : new DiskStore();
   globalThis.__kiswaniStore = store;
   globalThis.__minibitesStore = store;
   return store;

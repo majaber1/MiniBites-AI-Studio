@@ -1,5 +1,5 @@
 "use client";
-import { AGENT_DEFS } from "@/lib/agents/pipeline";
+import { AGENT_DEFS } from "@/lib/agents/defs";
 import { useLocale } from "@/components/LocaleProvider";
 
 export default function AgentsPage() {

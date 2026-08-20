@@ -237,42 +237,367 @@ export default function StudioPage() {
   </main>;
 }
 
-function ProductionView({ production: p, onCancel, onRetry, onGenerate, onReviewShot, onAssemble, onPlanChange, busy }: { production: Production; onCancel: () => void; onRetry: (shotId: string) => void; onGenerate: () => void; onReviewShot: (shotId: string, action: "accept" | "reject" | "regenerate") => void; onAssemble: () => void; onPlanChange: (shots: Production["shots"]) => Promise<void>; busy: boolean }) {
+function WorkflowStepper({ status }: { status: Production["status"] }) {
+  const steps = [
+    { id: "project", labelEn: "1. Project", labelAr: "١. المشروع", active: true },
+    { id: "idea", labelEn: "2. Idea", labelAr: "٢. الفكرة", active: true },
+    { id: "plan", labelEn: "3. Plan", labelAr: "٣. الخطة", active: true },
+    { id: "references", labelEn: "4. References", labelAr: "٤. المراجع", active: status !== "planning" },
+    { id: "visual", labelEn: "5. Visual", labelAr: "٥. البصري", active: status !== "planning" },
+    { id: "audio", labelEn: "6. Audio", labelAr: "٦. الصوت", active: status !== "planning" },
+    { id: "generate", labelEn: "7. Generate", labelAr: "٧. التوليد", active: ["generating", "review", "assembling", "awaiting_approval", "published"].includes(status) },
+    { id: "review", labelEn: "8. Review", labelAr: "٨. المراجعة", active: ["review", "assembling", "awaiting_approval", "published"].includes(status) },
+    { id: "assemble", labelEn: "9. Assemble", labelAr: "٩. التجميع", active: ["assembling", "awaiting_approval", "published"].includes(status) },
+    { id: "publish", labelEn: "10. Publish", labelAr: "١٠. النشر", active: ["awaiting_approval", "published"].includes(status) },
+  ];
+
+  return (
+    <div className="chips" style={{ marginBottom: 16, overflowX: "auto", paddingBottom: 4 }}>
+      {steps.map((s) => (
+        <span
+          key={s.id}
+          className={`badge ${s.active ? "ready" : "ghost"}`}
+          style={{ fontSize: "0.78rem", padding: "4px 8px" }}
+        >
+          {s.labelEn}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ProductionView({
+  production: p,
+  onCancel,
+  onRetry,
+  onGenerate,
+  onReviewShot,
+  onAssemble,
+  onPlanChange,
+  busy,
+}: {
+  production: Production;
+  onCancel: () => void;
+  onRetry: (shotId: string) => void;
+  onGenerate: () => void;
+  onReviewShot: (shotId: string, action: "accept" | "reject" | "regenerate") => void;
+  onAssemble: () => void;
+  onPlanChange: (shots: Production["shots"]) => Promise<void>;
+  busy: boolean;
+}) {
   const active = ACTIVE.includes(p.status);
   const [editingShotId, setEditingShotId] = useState<string | null>(null);
   const [draftAction, setDraftAction] = useState("");
+  const [draftDialogue, setDraftDialogue] = useState("");
   const [newShotAction, setNewShotAction] = useState("");
+  const [playingShotId, setPlayingShotId] = useState<string | null>(null);
   const completedShots = p.shots.filter((shot) => shot.status === "completed").length;
   const acceptedShots = p.shots.filter((shot) => shot.status === "completed" && shot.accepted).length;
-  const progressLabel = p.status === "planning" ? "Preparing your shots" : p.status === "generating" ? `Creating shot ${Math.min(completedShots + 1, p.shots.length || 1)} of ${p.shots.length || "…"}` : p.status === "assembling" ? "Preparing the final video" : p.status === "awaiting_approval" ? "Ready for review" : p.status.replaceAll("_", " ");
-  function beginEdit(index: number) { const current = p.shots[index]; setEditingShotId(current.id); setDraftAction(current.action); }
-  async function saveShot(index: number) { const action = draftAction.trim(); if (!action) return; await onPlanChange(p.shots.map((shot, i) => i === index ? { ...shot, action } : shot)); setEditingShotId(null); }
-  async function moveShot(index: number, direction: -1 | 1) { const target = index + direction; if (target < 0 || target >= p.shots.length) return; const next = [...p.shots]; [next[index], next[target]] = [next[target], next[index]]; await onPlanChange(next); }
-  async function deleteShot(index: number) { if (p.shots.length <= 3 || !window.confirm("Remove this shot from the plan?")) return; await onPlanChange(p.shots.filter((_, i) => i !== index)); }
-  async function addShot() { const action = newShotAction.trim(); if (!action || p.shots.length >= 9) return; await onPlanChange([...p.shots, { ...p.shots[p.shots.length - 1], id: `shot_new_${Date.now().toString(36)}`, action, status: "planned", attempts: 0, providerJobId: undefined, videoUrl: undefined, error: undefined }]); setNewShotAction(""); }
-  return <section>
-    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}><h2>{p.episodeTitle ?? p.dish}</h2><StatusBadge status={p.status} />{p.projectName && <span className="badge ready">{p.projectName}</span>}{active && <button className="danger" onClick={onCancel}>Cancel production</button>}</div>
-    <p className="progress-copy">{progressLabel}</p>
-    {p.providerIsMock && <p className="warn">MOCK provider active — this run is for testing only and produces no real video.</p>}
-    {p.error && <p className="warn">{p.error}</p>}
-    {p.status === "planned" && <div className="note plan-ready"><strong>Your shot plan is ready.</strong><span>Review the storyboard. No paid generation starts until you confirm.</span>
-      <div className="preflight-info">
-        <div><small>Engine</small><strong>{p.provider}</strong></div>
-        <div><small>Shots</small><strong>{p.shots.length}</strong></div>
-        <div><small>Aspect</small><strong>9:16</strong></div>
-        <div><small>Duration</small><strong>~{p.shots.reduce((s, shot) => s + shot.seconds, 0)}s</strong></div>
-        {p.projectName && <div><small>Project</small><strong>{p.projectName}</strong></div>}
-        {p.projectBible?.characters?.length ? <div><small>Characters</small><strong>{p.projectBible.characters.length} loaded</strong></div> : null}
-      </div>
-      <button onClick={onGenerate} disabled={busy}>{busy ? "Starting…" : p.providerIsMock ? "Run safe test" : `Generate ${p.shots.length} shots with ${p.provider}`}</button></div>}
+  const progressLabel =
+    p.status === "planning"
+      ? "Preparing your shot plan & dialogue"
+      : p.status === "generating"
+      ? `Generating clip ${Math.min(completedShots + 1, p.shots.length || 1)} of ${p.shots.length || "…"}`
+      : p.status === "assembling"
+      ? "Assembling video clips & audio tracks"
+      : p.status === "awaiting_approval"
+      ? "Ready for final review & publishing"
+      : p.status.replaceAll("_", " ");
 
-    <div className="grid production-grid" style={{ marginTop: 14 }}>
-      <details className="card advanced-panel"><summary>Production details</summary><p className="dim">{p.projectName ?? "MiniBites"} · {p.provider} · {p.planSource === "llm" ? "AI plan" : "Reliable template plan"} · {new Date(p.createdAt).toLocaleString()}</p><p className="mono dim">{p.id}</p><h3>Workflow</h3>{p.agents.map((a) => <div key={a.id} style={{ padding: "7px 0", borderBottom: "1px solid var(--line)" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><strong style={{ fontSize: "0.92rem" }}>{a.name}</strong><StatusBadge status={a.status} /></div>{a.note && <p className="dim" style={{ margin: "4px 0 0" }}>{a.note}</p>}{a.logs.length > 0 && <div className="logbox mono" style={{ marginTop: 6 }}>{a.logs.slice(-6).map((line) => <div key={line}>{line}</div>)}</div>}</div>)}</details>
-      <div className="card"><h3>Storyboard / Shots</h3>{p.shots.length === 0 ? <p className="dim">The shot list appears once planning completes.</p> : <div className="shots">{p.shots.map((s, shotIndex) => <div className="shot" key={s.id}><div style={{ display: "flex", justifyContent: "space-between" }}><span className="mono" style={{ color: "var(--yolk)" }}>SHOT {String(s.index).padStart(2, "0")} · {s.seconds}s</span><StatusBadge status={s.status} /></div>{editingShotId === s.id ? <div className="inline-shot-editor"><label htmlFor={`edit-${s.id}`}>Shot description</label><textarea id={`edit-${s.id}`} value={draftAction} maxLength={400} onChange={(e) => setDraftAction(e.target.value)} /><div><button onClick={() => saveShot(shotIndex)} disabled={!draftAction.trim()}>Save</button><button className="ghost" onClick={() => setEditingShotId(null)}>Cancel</button></div></div> : <p>{s.action}</p>}<p className="dim mono">{s.camera}</p>{p.status === "planned" && editingShotId !== s.id && <div className="shot-actions"><button className="ghost" onClick={() => beginEdit(shotIndex)}>Edit</button><button className="ghost" disabled={shotIndex === 0} onClick={() => moveShot(shotIndex, -1)}>↑</button><button className="ghost" disabled={shotIndex === p.shots.length - 1} onClick={() => moveShot(shotIndex, 1)}>↓</button><button className="danger" onClick={() => deleteShot(shotIndex)}>Delete</button></div>}{typeof s.queuePosition === "number" && <p className="dim">Queue position: {s.queuePosition}</p>}{s.error && <p className="dim" style={{ color: "var(--coral)" }}>{s.error}</p>}{s.videoUrl && !p.providerIsMock && <a className="action-link ghost compact" href={s.videoUrl} target="_blank" rel="noreferrer">Preview clip</a>}{(p.status === "review" || p.status === "changes_requested") && s.status === "completed" && !p.providerIsMock && <div className="shot-actions" style={{ marginTop: 8 }}><button onClick={() => onReviewShot(s.id, "accept")} disabled={s.accepted}>{s.accepted ? "✓ Accepted" : "Accept clip"}</button><button className="ghost" onClick={() => onReviewShot(s.id, "regenerate")}>Regenerate</button>{(s.versions?.length ?? 0) > 0 && <span className="dim">v{s.versions?.length}</span>}</div>}{(s.status === "failed" || s.status === "rejected") && <button className="ghost" style={{ padding: "6px 12px", marginTop: 6 }} onClick={() => onRetry(s.id)}>Retry shot ({s.attempts}/3)</button>}</div>)}</div>}
-        {p.status === "planned" && p.shots.length < 9 && <div className="add-shot"><label htmlFor="new-shot">Add another shot</label><div><input id="new-shot" value={newShotAction} maxLength={400} onChange={(e) => setNewShotAction(e.target.value)} placeholder="Describe what happens…" /><button className="ghost" disabled={!newShotAction.trim()} onClick={addShot}>+ Add shot</button></div></div>}
-        {(p.status === "review" || p.status === "changes_requested") && !p.providerIsMock && <div className="note" style={{ marginTop: 14 }}><strong>{p.status === "changes_requested" ? "Changes requested" : "Review every clip"}</strong><span>{p.approvalNote ? `${p.approvalNote} · ` : ""}{acceptedShots} of {p.shots.length} accepted. Regeneration keeps previous versions.</span><button onClick={onAssemble} disabled={busy || acceptedShots !== p.shots.length}>{busy ? "Starting…" : "Create final video"}</button></div>}
+  function beginEdit(index: number) {
+    const current = p.shots[index];
+    setEditingShotId(current.id);
+    setDraftAction(current.action);
+    setDraftDialogue(current.audioPlan?.dialogue?.[0]?.exactText ?? "");
+  }
+
+  async function saveShot(index: number) {
+    const action = draftAction.trim();
+    if (!action) return;
+    const current = p.shots[index];
+    const updatedDialogue = draftDialogue.trim()
+      ? [
+          {
+            speakerId: current.audioPlan?.dialogue?.[0]?.speakerId ?? "character",
+            exactText: draftDialogue.trim(),
+            textAr: draftDialogue.trim(),
+            voiceName: current.audioPlan?.dialogue?.[0]?.voiceName ?? "Fenrir",
+            voiceDirection: current.audioPlan?.dialogue?.[0]?.voiceDirection,
+            language: "ar" as const,
+          },
+        ]
+      : current.audioPlan?.dialogue;
+
+    const updatedAudioPlan = current.audioPlan
+      ? { ...current.audioPlan, dialogue: updatedDialogue }
+      : updatedDialogue
+      ? { audioMode: "hybrid" as const, dialogue: updatedDialogue }
+      : undefined;
+
+    await onPlanChange(
+      p.shots.map((shot, i) =>
+        i === index
+          ? {
+              ...shot,
+              action,
+              audioPlan: updatedAudioPlan,
+            }
+          : shot
+      )
+    );
+    setEditingShotId(null);
+  }
+
+  async function moveShot(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= p.shots.length) return;
+    const next = [...p.shots];
+    [next[index], next[target]] = [next[target], next[index]];
+    await onPlanChange(next);
+  }
+
+  async function deleteShot(index: number) {
+    if (p.shots.length <= 3 || !window.confirm("Remove this shot from the plan?")) return;
+    await onPlanChange(p.shots.filter((_, i) => i !== index));
+  }
+
+  async function addShot() {
+    const action = newShotAction.trim();
+    if (!action || p.shots.length >= 9) return;
+    await onPlanChange([
+      ...p.shots,
+      {
+        ...p.shots[p.shots.length - 1],
+        id: `shot_new_${Date.now().toString(36)}`,
+        action,
+        status: "planned",
+        attempts: 0,
+        providerJobId: undefined,
+        videoUrl: undefined,
+        error: undefined,
+      },
+    ]);
+    setNewShotAction("");
+  }
+
+  async function previewShotDialogue(shot: Production["shots"][number]) {
+    const d = shot.audioPlan?.dialogue?.[0];
+    if (!d) return;
+    setPlayingShotId(shot.id);
+    try {
+      const res = await api<{ audioUrl: string }>(`/api/audio/preview`, {
+        method: "POST",
+        body: JSON.stringify({
+          characterId: d.speakerId,
+          exactText: d.exactText,
+          voiceName: d.voiceName,
+          direction: d.voiceDirection,
+        }),
+      });
+      const audio = new Audio(res.audioUrl);
+      audio.play().catch(() => undefined);
+      audio.onended = () => setPlayingShotId(null);
+    } catch {
+      setPlayingShotId(null);
+    }
+  }
+
+  return (
+    <section>
+      <WorkflowStepper status={p.status} />
+
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <h2>{p.episodeTitle ?? p.dish}</h2>
+        <StatusBadge status={p.status} />
+        {p.projectName && <span className="badge ready">{p.projectName}</span>}
+        <span className="badge">{p.audioMode === "hybrid" ? "Hybrid Audio (Veo + TTS)" : p.audioMode === "exact_tts" ? "Exact TTS" : "Native ASMR Audio"}</span>
+        {active && <button className="danger" onClick={onCancel}>Cancel production</button>}
       </div>
-    </div>
-    {p.status === "awaiting_approval" && <div className="note" style={{ marginTop: 14 }}>Generation finished. Review and approve from the <a href="/library" style={{ color: "var(--yolk)" }}>Content Library</a>, then publish from <a href="/publishing" style={{ color: "var(--yolk)" }}>Publishing</a>.</div>}
-  </section>;
+
+      <p className="progress-copy">{progressLabel}</p>
+      {p.providerIsMock && <p className="warn">MOCK provider active — this run is for testing only and produces no real video.</p>}
+      {p.error && <p className="warn">{p.error}</p>}
+
+      {p.status === "planned" && (
+        <div className="note plan-ready">
+          <strong>Your shot plan is ready for review.</strong>
+          <span>Verify shots, reference images, and exact Arabic dialogue before confirming paid generation.</span>
+          <div className="preflight-info">
+            <div><small>Engine</small><strong>{p.provider}</strong></div>
+            <div><small>Audio Mode</small><strong>{p.audioMode ?? "native"}</strong></div>
+            <div><small>Shots</small><strong>{p.shots.length}</strong></div>
+            <div><small>Aspect</small><strong>9:16</strong></div>
+            <div><small>Duration</small><strong>~{p.shots.reduce((s, shot) => s + shot.seconds, 0)}s</strong></div>
+            {p.kitchenReference && <div><small>Kitchen Ref</small><strong>1:12 Master Locked</strong></div>}
+          </div>
+          <button onClick={onGenerate} disabled={busy}>
+            {busy ? "Starting…" : p.providerIsMock ? "Run safe test" : `Generate ${p.shots.length} shots with ${p.provider}`}
+          </button>
+        </div>
+      )}
+
+      <div className="grid production-grid" style={{ marginTop: 14 }}>
+        <details className="card advanced-panel">
+          <summary>Production details & Agents</summary>
+          <p className="dim">{p.projectName ?? "MiniBites"} · {p.provider} · {p.planSource === "llm" ? "AI plan" : "Reliable template plan"} · {new Date(p.createdAt).toLocaleString()}</p>
+          <p className="mono dim">{p.id}</p>
+          <h3>Workflow Agents</h3>
+          {p.agents.map((a) => (
+            <div key={a.id} style={{ padding: "7px 0", borderBottom: "1px solid var(--line)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                <strong style={{ fontSize: "0.92rem" }}>{a.name}</strong>
+                <StatusBadge status={a.status} />
+              </div>
+              {a.note && <p className="dim" style={{ margin: "4px 0 0" }}>{a.note}</p>}
+              {a.logs.length > 0 && (
+                <div className="logbox mono" style={{ marginTop: 6 }}>
+                  {a.logs.slice(-6).map((line) => <div key={line}>{line}</div>)}
+                </div>
+              )}
+            </div>
+          ))}
+        </details>
+
+        <div className="card">
+          <h3>Storyboard & Shots ({p.shots.length})</h3>
+          {p.shots.length === 0 ? (
+            <p className="dim">The shot list appears once planning completes.</p>
+          ) : (
+            <div className="shots">
+              {p.shots.map((s, shotIndex) => {
+                const dialogueItem = s.audioPlan?.dialogue?.[0];
+
+                return (
+                  <div className="shot" key={s.id} style={{ borderLeft: s.audioPlan?.dialogue?.length ? "3px solid var(--yolk)" : undefined }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span className="mono" style={{ color: "var(--yolk)", fontWeight: 600 }}>
+                        SHOT {String(s.index).padStart(2, "0")} · {s.seconds}s
+                      </span>
+                      <StatusBadge status={s.status} />
+                    </div>
+
+                    {editingShotId === s.id ? (
+                      <div className="inline-shot-editor" style={{ marginTop: 8 }}>
+                        <label htmlFor={`edit-action-${s.id}`}>Shot visual action</label>
+                        <textarea
+                          id={`edit-action-${s.id}`}
+                          value={draftAction}
+                          maxLength={400}
+                          onChange={(e) => setDraftAction(e.target.value)}
+                        />
+                        <label htmlFor={`edit-dialogue-${s.id}`} style={{ marginTop: 6 }}>
+                          Exact Arabic Dialogue / Narration
+                        </label>
+                        <input
+                          id={`edit-dialogue-${s.id}`}
+                          dir="rtl"
+                          value={draftDialogue}
+                          maxLength={300}
+                          onChange={(e) => setDraftDialogue(e.target.value)}
+                          placeholder="النص العربي الدقيق الذي ينطقه الممثل…"
+                        />
+                        <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+                          <button onClick={() => saveShot(shotIndex)} disabled={!draftAction.trim()}>Save</button>
+                          <button className="ghost" onClick={() => setEditingShotId(null)}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p style={{ margin: "6px 0", fontWeight: 500 }}>{s.action}</p>
+                        <p className="dim mono" style={{ fontSize: "0.82rem" }}>🎥 {s.camera}</p>
+
+                        {/* Sound & Dialogue details */}
+                        <div style={{ background: "var(--card-subtle, rgba(255,255,255,0.02))", padding: "6px 10px", borderRadius: 6, margin: "6px 0", fontSize: "0.86rem" }}>
+                          <div style={{ color: "var(--muted)" }}>🔊 {s.sound}</div>
+                          {dialogueItem && (
+                            <div style={{ marginTop: 4, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                              <div dir="rtl" style={{ fontWeight: 600, color: "var(--foreground)", fontSize: "0.94rem" }}>
+                                🗣️ «{dialogueItem.exactText}»
+                                <span style={{ fontSize: "0.75rem", color: "var(--muted)", marginRight: 6 }}>({dialogueItem.speakerId} · {dialogueItem.voiceName ?? "TTS"})</span>
+                              </div>
+                              <button
+                                className="button compact ghost"
+                                onClick={() => previewShotDialogue(s)}
+                                disabled={playingShotId === s.id}
+                              >
+                                {playingShotId === s.id ? "…" : "▶ استمع"}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    {p.status === "planned" && editingShotId !== s.id && (
+                      <div className="shot-actions" style={{ marginTop: 6 }}>
+                        <button className="ghost compact" onClick={() => beginEdit(shotIndex)}>Edit</button>
+                        <button className="ghost compact" disabled={shotIndex === 0} onClick={() => moveShot(shotIndex, -1)}>↑</button>
+                        <button className="ghost compact" disabled={shotIndex === p.shots.length - 1} onClick={() => moveShot(shotIndex, 1)}>↓</button>
+                        <button className="danger compact" onClick={() => deleteShot(shotIndex)}>Delete</button>
+                      </div>
+                    )}
+
+                    {typeof s.queuePosition === "number" && <p className="dim">Queue position: {s.queuePosition}</p>}
+                    {s.error && <p className="dim" style={{ color: "var(--coral)" }}>{s.error}</p>}
+                    {s.videoUrl && !p.providerIsMock && (
+                      <a className="action-link ghost compact" href={s.videoUrl} target="_blank" rel="noreferrer">Preview clip</a>
+                    )}
+
+                    {(p.status === "review" || p.status === "changes_requested") && s.status === "completed" && !p.providerIsMock && (
+                      <div className="shot-actions" style={{ marginTop: 8 }}>
+                        <button onClick={() => onReviewShot(s.id, "accept")} disabled={s.accepted}>
+                          {s.accepted ? "✓ Accepted" : "Accept clip"}
+                        </button>
+                        <button className="ghost" onClick={() => onReviewShot(s.id, "regenerate")}>Regenerate</button>
+                        {(s.versions?.length ?? 0) > 0 && <span className="dim">v{s.versions?.length}</span>}
+                      </div>
+                    )}
+
+                    {(s.status === "failed" || s.status === "rejected") && (
+                      <button className="ghost" style={{ padding: "6px 12px", marginTop: 6 }} onClick={() => onRetry(s.id)}>
+                        Retry shot ({s.attempts}/3)
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {p.status === "planned" && p.shots.length < 9 && (
+            <div className="add-shot" style={{ marginTop: 12 }}>
+              <label htmlFor="new-shot">Add another shot</label>
+              <div>
+                <input
+                  id="new-shot"
+                  value={newShotAction}
+                  maxLength={400}
+                  onChange={(e) => setNewShotAction(e.target.value)}
+                  placeholder="Describe what happens in this scene…"
+                />
+                <button className="ghost" disabled={!newShotAction.trim()} onClick={addShot}>+ Add shot</button>
+              </div>
+            </div>
+          )}
+
+          {(p.status === "review" || p.status === "changes_requested") && !p.providerIsMock && (
+            <div className="note" style={{ marginTop: 14 }}>
+              <strong>{p.status === "changes_requested" ? "Changes requested" : "Review every clip"}</strong>
+              <span>{p.approvalNote ? `${p.approvalNote} · ` : ""}{acceptedShots} of {p.shots.length} accepted.</span>
+              <button onClick={onAssemble} disabled={busy || acceptedShots !== p.shots.length}>
+                {busy ? "Starting…" : "Create final video"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {p.status === "awaiting_approval" && (
+        <div className="note" style={{ marginTop: 14 }}>
+          <strong>Generation & Assembly complete!</strong> Review and publish from the{" "}
+          <a href="/publishing" style={{ color: "var(--yolk)", textDecoration: "underline" }}>Publishing Dashboard</a>.
+        </div>
+      )}
+    </section>
+  );
 }

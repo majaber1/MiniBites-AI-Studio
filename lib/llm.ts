@@ -9,7 +9,35 @@ import type { CreativeStyle, DurationPreset, StoryMode } from "@/lib/types";
 export interface ShotPlan {
   recipeSummary: string;
   miniatureBrief: string;
-  shots: Array<{ seconds: number; action: string; camera: string; sound: string }>;
+  shots: Array<{
+    seconds: number;
+    action: string;
+    camera: string;
+    sound: string;
+    dialogue?: Array<{
+      speakerId: string;
+      exactText: string;
+      textAr?: string;
+      language?: "ar" | "en" | "mixed";
+      dialect?: string;
+      voiceName?: string;
+      voiceDirection?: string;
+    }>;
+    audioPlan?: {
+      audioMode: "native" | "exact_tts" | "hybrid";
+      ambient?: string;
+      soundEffects?: string[];
+      dialogue?: Array<{
+        speakerId: string;
+        exactText: string;
+        textAr?: string;
+        language?: "ar" | "en" | "mixed";
+        dialect?: string;
+        voiceName?: string;
+        voiceDirection?: string;
+      }>;
+    };
+  }>;
   title: string;
   caption: string;
   hashtags: string[];
@@ -40,12 +68,48 @@ export function validateShotPlan(value: unknown, preset?: DurationPreset): ShotP
     const shot = item as Record<string, unknown>;
     const seconds = Number(shot.seconds);
     if (!Number.isFinite(seconds) || seconds < 3 || seconds > 8) throw new Error(`Planner shot ${index + 1} has an invalid duration.`);
-    return {
+    
+    let dialogue: ShotPlan["shots"][number]["dialogue"] = undefined;
+    if (Array.isArray(shot.dialogue)) {
+      dialogue = shot.dialogue.map((d: any) => ({
+        speakerId: text(d.speakerId ?? "character", `shots[${index}].dialogue.speakerId`, 50),
+        exactText: text(d.exactText ?? d.textAr ?? "", `shots[${index}].dialogue.exactText`, 300),
+        textAr: typeof d.textAr === "string" ? text(d.textAr, `shots[${index}].dialogue.textAr`, 300) : undefined,
+        language: d.language ?? "ar",
+        dialect: typeof d.dialect === "string" ? text(d.dialect, `shots[${index}].dialogue.dialect`, 100) : undefined,
+        voiceName: typeof d.voiceName === "string" ? text(d.voiceName, `shots[${index}].dialogue.voiceName`, 50) : undefined,
+        voiceDirection: typeof d.voiceDirection === "string" ? text(d.voiceDirection, `shots[${index}].dialogue.voiceDirection`, 200) : undefined,
+      }));
+    }
+
+    let audioPlan: ShotPlan["shots"][number]["audioPlan"] = undefined;
+    if (shot.audioPlan && typeof shot.audioPlan === "object") {
+      const ap = shot.audioPlan as any;
+      audioPlan = {
+        audioMode: ap.audioMode ?? "hybrid",
+        ambient: typeof ap.ambient === "string" ? text(ap.ambient, `shots[${index}].audioPlan.ambient`, 200) : undefined,
+        soundEffects: Array.isArray(ap.soundEffects) ? ap.soundEffects.map((s: any) => text(s, "soundEffect", 100)) : undefined,
+        dialogue: dialogue ?? (Array.isArray(ap.dialogue) ? ap.dialogue.map((d: any) => ({
+          speakerId: text(d.speakerId ?? "character", "speakerId", 50),
+          exactText: text(d.exactText ?? d.textAr ?? "", "exactText", 300),
+          textAr: typeof d.textAr === "string" ? text(d.textAr, "textAr", 300) : undefined,
+          language: d.language ?? "ar",
+          dialect: typeof d.dialect === "string" ? text(d.dialect, "dialect", 100) : undefined,
+          voiceName: typeof d.voiceName === "string" ? text(d.voiceName, "voiceName", 50) : undefined,
+          voiceDirection: typeof d.voiceDirection === "string" ? text(d.voiceDirection, "voiceDirection", 200) : undefined,
+        })) : undefined),
+      };
+    }
+
+    const shotObj: ShotPlan["shots"][number] = {
       seconds: Math.round(seconds),
       action: text(shot.action, `shots[${index}].action`, 400),
       camera: text(shot.camera, `shots[${index}].camera`, 200),
-      sound: text(shot.sound, `shots[${index}].sound`, 160),
+      sound: text(shot.sound, `shots[${index}].sound`, 250),
     };
+    if (dialogue) shotObj.dialogue = dialogue;
+    if (audioPlan) shotObj.audioPlan = audioPlan;
+    return shotObj;
   });
   const duration = shots.reduce((sum, shot) => sum + shot.seconds, 0);
   if (duration < 30 || duration > 45) throw new Error("Planner duration must be 30–45 seconds.");
