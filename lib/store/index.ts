@@ -31,11 +31,12 @@ declare global {
 }
 
 export function getStore(): Store {
-  if (globalThis.__kiswaniStore) return globalThis.__kiswaniStore;
+  // Always sync: if __minibitesStore is set, it's the active store (used by tests)
   if (globalThis.__minibitesStore) {
     globalThis.__kiswaniStore = globalThis.__minibitesStore;
     return globalThis.__kiswaniStore;
   }
+  if (globalThis.__kiswaniStore) return globalThis.__kiswaniStore;
   const url = cleanEnv("UPSTASH_REDIS_REST_URL");
   const token = cleanEnv("UPSTASH_REDIS_REST_TOKEN");
   const store: Store = url && token ? new UpstashStore(url, token) : new MemoryStore();
