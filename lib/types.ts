@@ -218,15 +218,20 @@ export interface StageMonitorEntry {
   stage: "planning" | "reference_image" | "video" | "audio" | "assembly" | "storage" | "publishing";
   provider: string;
   selectedModel: string;
-  actualModel: string;
+  actualModel: string | null;
   whySelected?: string;
+  selectionReason?: string;
   status: "pending" | "running" | "completed" | "failed" | "skipped";
+  realExecution?: boolean;
+  mediaUrl?: string | null;
   referenceAssets?: string[];
   audioMode?: AudioMode;
   estimatedCostUsd?: number | null;
+  actualCostUsd?: number | null;
   providerJobId?: string | null;
   startedAt?: string;
   finishedAt?: string;
+  completedAt?: string;
   error?: string | null;
   fallbackUsed: boolean;
 }

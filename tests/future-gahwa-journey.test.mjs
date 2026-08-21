@@ -83,7 +83,10 @@ test("Auto Director vs Manual mode initialization and Generation Monitor transpa
 
   assert.ok(planEntry && videoEntry && imgEntry);
   assert.equal(planEntry.fallbackUsed, false);
-  assert.match(planEntry.whySelected, /Auto Director/);
+  assert.equal(planEntry.actualModel, null, "actualModel must be null before stage execution");
+  assert.equal(videoEntry.actualModel, null, "video actualModel must be null before generation starts");
+  assert.equal(planEntry.realExecution, false);
+  assert.match(planEntry.selectionReason || planEntry.whySelected, /Auto Director/);
 
   // 2. Manual mode
   const manualProd = createProduction("برق يتعلم يصب القهوة", "ar", "owner-gahwa", "google", undefined, {

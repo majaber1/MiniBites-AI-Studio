@@ -95,23 +95,35 @@ export default function GenerationMonitor({
                     style={{
                       fontSize: "0.78rem",
                       fontFamily: "var(--font-mono, monospace)",
-                      background: "rgba(255, 255, 255, 0.06)",
+                      background: entry.actualModel ? "rgba(46, 204, 113, 0.12)" : "rgba(255, 255, 255, 0.06)",
+                      color: entry.actualModel ? "var(--yolk, #2ecc71)" : "var(--muted)",
                       padding: "2px 6px",
                       borderRadius: 4,
                     }}
                   >
-                    Actual: {entry.actualModel}
+                    {entry.actualModel ? `Actual: ${entry.actualModel}` : "⏳ Not executed yet"}
                   </span>
-                  {entry.selectedModel !== entry.actualModel && (
-                    <span className="dim" style={{ fontSize: "0.75rem" }}>
-                      (Selected: {entry.selectedModel})
+                  <span className="dim" style={{ fontSize: "0.75rem" }}>
+                    (Selected: {entry.selectedModel})
+                  </span>
+                  {entry.status === "completed" && (
+                    <span
+                      className="badge compact"
+                      style={{
+                        fontSize: "0.68rem",
+                        padding: "1px 5px",
+                        background: entry.realExecution ? "rgba(46, 204, 113, 0.2)" : "rgba(241, 196, 15, 0.15)",
+                        color: entry.realExecution ? "#2ecc71" : "#f1c40f",
+                      }}
+                    >
+                      {entry.realExecution ? "✓ Real Execution" : "🧪 Mock / Test"}
                     </span>
                   )}
                 </div>
 
-                {entry.whySelected && (
+                {(entry.selectionReason || entry.whySelected) && (
                   <p style={{ margin: "2px 0 0 0", fontSize: "0.8rem", color: "var(--muted, #888)" }}>
-                    💡 <em>{entry.whySelected}</em>
+                    💡 <em>{entry.selectionReason || entry.whySelected}</em>
                   </p>
                 )}
 
