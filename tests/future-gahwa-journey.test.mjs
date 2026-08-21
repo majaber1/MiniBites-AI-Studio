@@ -107,3 +107,100 @@ test("Abu Nasser and Barq prebuilt voice previews are configured in Gemini TTS",
   assert.equal(DEFAULT_CHARACTER_VOICES["abu-nasser"].voiceName, "Orus");
   assert.equal(DEFAULT_CHARACTER_VOICES.barq.voiceName, "Puck");
 });
+
+test("Creates test episodes across all projects (Future Gahwa, Iyal Al Halal, MiniBites)", async () => {
+  const { getStore } = await import("../lib/store/index.ts");
+  const { createProduction, advanceProduction } = await import("../lib/agents/pipeline.ts");
+  const { builtinProjects } = await import("../lib/projects.ts");
+
+  const store = getStore();
+  const projects = builtinProjects("test-creator");
+  for (const p of projects) {
+    await store.saveProject(p);
+  }
+
+  const gahwa = projects.find((p) => p.id === "future-gahwa");
+  const iyal = projects.find((p) => p.id === "iyal-al-halal");
+  const mini = projects.find((p) => p.id === "minibites");
+
+  assert.ok(gahwa && iyal && mini);
+
+  // 1. Future Gahwa episode: "برق يتعلم يصب القهوة"
+  let ep1 = createProduction("برق يتعلم يصب القهوة", "ar", "test-creator", "mock", undefined, {
+    projectId: gahwa.id,
+    projectName: gahwa.name,
+    projectKind: gahwa.kind,
+    projectBible: gahwa.bible,
+    directorMode: "auto",
+    style: "playful",
+    storyMode: "funny",
+    durationPreset: "standard",
+    audioMode: "hybrid",
+  });
+  ep1 = await advanceProduction(ep1);
+  await store.saveProduction(ep1);
+
+  assert.equal(ep1.status, "planned");
+  assert.ok(ep1.shots.length >= 6);
+  assert.equal(ep1.directorMode, "auto");
+  assert.equal(ep1.audioMode, "hybrid");
+  assert.ok(ep1.generationMonitor?.length === 7);
+
+  // 2. Future Gahwa episode: "برق ومسألة التمر السكري"
+  let ep2 = createProduction("برق ومسألة التمر السكري", "ar", "test-creator", "mock", undefined, {
+    projectId: gahwa.id,
+    projectName: gahwa.name,
+    projectKind: gahwa.kind,
+    projectBible: gahwa.bible,
+    directorMode: "auto",
+    style: "traditional",
+    storyMode: "funny",
+    durationPreset: "quick",
+    audioMode: "hybrid",
+  });
+  ep2 = await advanceProduction(ep2);
+  await store.saveProduction(ep2);
+
+  assert.equal(ep2.status, "planned");
+  assert.ok(ep2.shots.length >= 3);
+
+  // 3. Iyal Al Halal episode: "ذيبان أول مرة يجرب الكبسة"
+  let ep3 = createProduction("ذيبان أول مرة يجرب الكبسة", "ar", "test-creator", "mock", undefined, {
+    projectId: iyal.id,
+    projectName: iyal.name,
+    projectKind: iyal.kind,
+    projectBible: iyal.bible,
+    directorMode: "auto",
+    style: "playful",
+    storyMode: "funny",
+    durationPreset: "standard",
+    audioMode: "hybrid",
+  });
+  ep3 = await advanceProduction(ep3);
+  await store.saveProduction(ep3);
+
+  assert.equal(ep3.status, "planned");
+  assert.ok(ep3.shots.length >= 6);
+
+  // 4. MiniBites episode: "Mini Saudi Kabsa"
+  let ep4 = createProduction("Mini Saudi Kabsa", "en", "test-creator", "mock", undefined, {
+    projectId: mini.id,
+    projectName: mini.name,
+    projectKind: mini.kind,
+    projectBible: mini.bible,
+    directorMode: "auto",
+    style: "cinematic",
+    storyMode: "satisfying",
+    durationPreset: "standard",
+    audioMode: "native",
+  });
+  ep4 = await advanceProduction(ep4);
+  await store.saveProduction(ep4);
+
+  assert.equal(ep4.status, "planned");
+  assert.ok(ep4.shots.length >= 6);
+  assert.ok(ep4.kitchenReference);
+
+  const stored = await store.listProductions("test-creator");
+  assert.ok(stored.length >= 4);
+});
