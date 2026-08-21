@@ -1,7 +1,7 @@
 import type { IntegrationStatus } from "./types";
-import { getVideoProvider } from "./providers";
+import { getVideoProvider } from "./providers/index";
 import { llmConfigured } from "./llm";
-import { getStore } from "./store";
+import { getStore } from "./store/index";
 import { passwordConfigured } from "./security";
 import { durableMediaConfigured } from "./media-storage";
 import { cleanEnv } from "./env";
