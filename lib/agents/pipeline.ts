@@ -7,6 +7,8 @@ import { createStudioPlan } from "../studio-planner";
 import { getStore } from "../store";
 import { falAssemblyConfigured, getMergeStatus, getMergeResult, submitMerge } from "../assembly";
 import { archiveFinalVideo, durableMediaConfigured } from "../media-storage";
+import { recordAttempt, recordEvent } from "../observability/tracker";
+import { classifyFailure } from "../observability/router";
 import { AGENT_DEFS } from "./defs";
 export { AGENT_DEFS };
 
@@ -258,6 +260,10 @@ export function createProduction(subject: string, language: "en" | "ar", ownerKe
   };
   start(p, "orchestrator", `Production accepted for "${subject}" in ${p.projectName}.`);
   log(p, "orchestrator", `Project: ${p.projectName} (${kind}). Provider: ${provider.name}${provider.isMock ? " — MOCK, not real video" : ""}`);
+  recordEvent(p.id, "REQUEST_RECEIVED", "planning", "INFO", `Production accepted for "${subject}" in ${p.projectName}.`, `تم استلام طلب الإنتاج لحلقة «${subject}» في مشروع ${p.projectName}.`);
+  if (p.projectBible) {
+    recordEvent(p.id, "PROJECT_BIBLE_LOADED", "planning", "INFO", `Project Bible loaded for ${p.projectName}.`, `تم تحميل دليل المشروع الإرشادي وثبات الشخصيات.`);
+  }
   return p;
 }
 
@@ -401,8 +407,46 @@ async function advanceGeneration(p: Production) {
         shot.versions.push({ version: shot.versions.length + 1, videoUrl: result.videoUrl, prompt: shot.prompt, providerJobId: shot.providerJobId, createdAt: new Date().toISOString(), accepted: p.providerIsMock });
         if (result.resolution) p.resolution = result.resolution;
         p.usage ??= { submittedShots: 0, completedShots: 0, failedShots: 0, estimatedCostUsd: null }; p.usage.completedShots += 1; log(p, "video", `Shot ${shot.index} completed.`);
+        recordEvent(p.id, "PROVIDER_RESPONSE_RECEIVED", "video", "SUCCESS", `Shot ${shot.index} completed successfully with ${provider.name}.`);
+        recordAttempt(p.id, {
+          attemptNumber: shot.attempts,
+          stage: "video",
+          provider: provider.name,
+          channel: p.providerChoice === "google" ? "Gemini API" : p.providerChoice === "fal" ? "fal.ai" : "Local Mock",
+          selectedModel: p.selectedVideoModel || provider.name,
+          actualModel: p.providerIsMock ? null : p.selectedVideoModel || provider.name,
+          httpStatus: 200,
+          providerJobId: shot.providerJobId,
+          realExecution: !p.providerIsMock,
+          result: "SUCCESS",
+          fallbackExecuted: false,
+          timestamp: new Date().toISOString(),
+          estimatedCostUsd: shot.estimatedCostUsd,
+          actualCostUsd: p.providerIsMock ? 0 : shot.estimatedCostUsd,
+        });
       } else {
         shot.status = "failed"; shot.error = st.error; p.usage ??= { submittedShots: 0, completedShots: 0, failedShots: 0, estimatedCostUsd: null }; p.usage.failedShots += 1; log(p, "video", `Shot ${shot.index} failed: ${st.error}`);
+        const classification = classifyFailure(null, st.error ?? "");
+        recordEvent(p.id, "PROVIDER_ERROR", "video", "ERROR", `Shot ${shot.index} failed: ${st.error}`);
+        recordAttempt(p.id, {
+          attemptNumber: shot.attempts,
+          stage: "video",
+          provider: provider.name,
+          channel: p.providerChoice === "google" ? "Gemini API" : p.providerChoice === "fal" ? "fal.ai" : "Local Mock",
+          selectedModel: p.selectedVideoModel || provider.name,
+          actualModel: p.providerIsMock ? null : p.selectedVideoModel || provider.name,
+          httpStatus: null,
+          providerJobId: shot.providerJobId,
+          realExecution: !p.providerIsMock,
+          result: "FAILED",
+          failureType: classification.failureType,
+          failureScope: classification.failureScope,
+          fallbackExecuted: false,
+          error: st.error,
+          timestamp: new Date().toISOString(),
+          estimatedCostUsd: shot.estimatedCostUsd,
+          actualCostUsd: 0,
+        });
       }
       if (st.logs?.length) { const last = st.logs[st.logs.length - 1]; if (last) log(p, "video", `Shot ${shot.index}: ${last.slice(0, 160)}`); }
     }
@@ -418,6 +462,23 @@ async function advanceGeneration(p: Production) {
       p.usage ??= { submittedShots: 0, completedShots: 0, failedShots: 0, estimatedCostUsd: null }; p.usage.submittedShots += 1;
       p.usage.estimatedCostUsd = estimatedCost === null || p.usage.estimatedCostUsd === null ? null : p.usage.estimatedCostUsd + estimatedCost;
       log(p, "video", `Shot ${next.index} submitted (job ${providerJobId.slice(0, 12)}…).`);
+      recordEvent(p.id, "PROVIDER_REQUEST_SUBMITTED", "video", "INFO", `Shot ${next.index} submitted to ${provider.name}.`);
+      recordAttempt(p.id, {
+        attemptNumber: next.attempts,
+        stage: "video",
+        provider: provider.name,
+        channel: p.providerChoice === "google" ? "Gemini API" : p.providerChoice === "fal" ? "fal.ai" : "Local Mock",
+        selectedModel: p.selectedVideoModel || provider.name,
+        actualModel: p.providerIsMock ? null : p.selectedVideoModel || provider.name,
+        httpStatus: 200,
+        providerJobId,
+        realExecution: !p.providerIsMock,
+        result: "IN_PROGRESS",
+        fallbackExecuted: false,
+        timestamp: new Date().toISOString(),
+        estimatedCostUsd: estimatedCost,
+        actualCostUsd: null,
+      });
     }
   }
   const unfinished = p.shots.some((s) => ["planned", "submitted", "in_queue", "generating"].includes(s.status));

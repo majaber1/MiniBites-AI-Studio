@@ -39,9 +39,9 @@ export function verifyPassword(candidate: string): boolean {
 export function isAuthed(req: Request): boolean {
   if (!passwordConfigured()) return false;
   const cookies = req.headers.get("cookie") ?? "";
-  const match = cookies.split(/;\s*/).find((c) => c.startsWith(`${COOKIE}=`));
+  const match = cookies.split(/;\s*/).find((c) => c.startsWith(`${COOKIE}=`) || c.startsWith("ks_session="));
   if (!match) return false;
-  const value = match.slice(COOKIE.length + 1);
+  const value = match.includes("=") ? match.split("=").slice(1).join("=") : "";
   const [version, expiresRaw, suppliedSignature] = value.split(".");
   const expiresAt = Number(expiresRaw);
   if (version !== "v1" || !Number.isSafeInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) return false;

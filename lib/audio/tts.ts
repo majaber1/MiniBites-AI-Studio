@@ -17,6 +17,8 @@ export interface TTSResult {
   mimeType: string;
   durationSeconds?: number;
   voiceUsed: string;
+  actualModel?: string;
+  realExecution?: boolean;
 }
 
 export const PREBUILT_VOICES = [
@@ -68,6 +70,30 @@ export const DEFAULT_CHARACTER_VOICES: Record<string, CharacterVoiceProfile> = {
   },
 };
 
+/** Converts raw 16-bit PCM buffer into standard playable WAV buffer */
+export function pcmToWav(pcmBuffer: Buffer, sampleRate = 24000, numChannels = 1): Buffer {
+  const byteRate = sampleRate * numChannels * 2;
+  const blockAlign = numChannels * 2;
+  const dataSize = pcmBuffer.length;
+  const header = Buffer.alloc(44);
+
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + dataSize, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16); // subchunk 1 size (16 for PCM)
+  header.writeUInt16LE(1, 20); // audio format 1 = PCM
+  header.writeUInt16LE(numChannels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(16, 34); // bits per sample
+  header.write("data", 36);
+  header.writeUInt32LE(dataSize, 40);
+
+  return Buffer.concat([header, pcmBuffer]);
+}
+
 export function isGeminiTTSConfigured(): boolean {
   return Boolean(cleanEnv("GEMINI_API_KEY"));
 }
@@ -79,12 +105,14 @@ export async function generateGeminiSpeech(req: TTSRequest): Promise<TTSResult> 
   if (!exactText) throw new Error("TTS request text cannot be empty.");
 
   if (!apiKey) {
-    // Honest mock / fallback when no API key is configured
+    // Honest mock / test placeholder when no API key is configured
     return {
       audioUrl: "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==",
       mimeType: "audio/wav",
       durationSeconds: 2,
       voiceUsed: req.voiceName || "Fenrir",
+      actualModel: "mock-tts",
+      realExecution: false,
     };
   }
 
@@ -135,14 +163,27 @@ export async function generateGeminiSpeech(req: TTSRequest): Promise<TTSResult> 
     throw new Error("Gemini TTS returned no audio data.");
   }
 
-  const mimeType = part.inlineData.mimeType ?? "audio/mp3";
-  const base64Data = part.inlineData.data;
+  let mimeType = part.inlineData.mimeType ?? "audio/mp3";
+  let base64Data = part.inlineData.data;
+
+  // Convert raw PCM L16 to standard browser-playable WAV
+  if (mimeType.includes("audio/l16") || mimeType.includes("rate=24000")) {
+    const rawPcm = Buffer.from(base64Data, "base64");
+    const wavBuffer = pcmToWav(rawPcm, 24000, 1);
+    base64Data = wavBuffer.toString("base64");
+    mimeType = "audio/wav";
+  }
+
   const audioDataUrl = `data:${mimeType};base64,${base64Data}`;
+  const approxDuration = Math.max(1, Math.round(exactText.split(/\s+/).length * 0.45));
 
   return {
     audioUrl: audioDataUrl,
     audioBase64: base64Data,
     mimeType,
+    durationSeconds: approxDuration,
     voiceUsed: req.voiceName || "Fenrir",
+    actualModel: model,
+    realExecution: true,
   };
 }

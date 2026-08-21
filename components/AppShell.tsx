@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import LogoutButton from "./LogoutButton";
 import { useLocale } from "./LocaleProvider";
 
-type IconName = "grid" | "spark" | "film" | "layout" | "plug" | "bot" | "pulse" | "folder" | "send" | "chart";
+type IconName = "grid" | "spark" | "film" | "layout" | "plug" | "bot" | "pulse" | "folder" | "send" | "chart" | "radar";
 const paths: Record<IconName, React.ReactNode> = {
   grid: <><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,
   spark: <><path d="m12 3-1.4 4.1a5 5 0 0 1-3.1 3.1L3.5 12l4 1.6a5 5 0 0 1 3 3L12 21l1.5-4.4a5 5 0 0 1 3-3l4-1.6-4-1.8a5 5 0 0 1-3.1-3.1Z"/></>,
@@ -19,6 +19,7 @@ const paths: Record<IconName, React.ReactNode> = {
   folder: <><path d="M3 7.5h7l2 2h9v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M3 7.5V6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1.5"/></>,
   send: <><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></>,
   chart: <><path d="M4 20V10M10 20V4M16 20v-7M22 20V7"/></>,
+  radar: <><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><line x1="12" y1="12" x2="18.5" y2="5.5"/></>,
 };
 
 function Icon({ name }: { name: IconName }) {
@@ -32,6 +33,7 @@ const navigation = [
   { href: "/library", key: "library", icon: "film" },
   { href: "/publishing", key: "publishing", icon: "send" },
   { href: "/monitoring", key: "monitoring", icon: "chart" },
+  { href: "/backend", key: "backend", icon: "radar" },
   { href: "/templates", key: "templates", icon: "layout" },
   { href: "/integrations", key: "integrations", icon: "plug" },
   { href: "/agents", key: "agents", icon: "bot" },

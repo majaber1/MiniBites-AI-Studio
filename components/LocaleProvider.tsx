@@ -7,14 +7,14 @@ export type Locale = "en" | "ar";
 const messages = {
   en: {
     dashboard: "Dashboard", projects: "Projects", studio: "Create", library: "Library", publishing: "Publishing", monitoring: "Monitoring",
-    templates: "Templates", integrations: "Integrations", agents: "AI Agents", operations: "Operations", create: "New episode",
+    backend: "Backend", templates: "Templates", integrations: "Integrations", agents: "AI Agents", operations: "Operations", create: "New episode",
     search: "Search projects", account: "Creator account", signOut: "Sign out", menu: "Open menu",
     close: "Close menu", collapse: "Collapse sidebar", expand: "Expand sidebar", home: "Home",
     workspace: "Workspace", system: "System", language: "العربية", skip: "Skip to content",
   },
   ar: {
     dashboard: "لوحة التحكم", projects: "المشاريع", studio: "إنشاء", library: "المكتبة", publishing: "النشر", monitoring: "المراقبة",
-    templates: "القوالب", integrations: "التكاملات", agents: "وكلاء الذكاء", operations: "العمليات", create: "حلقة جديدة",
+    backend: "وحدة التوجيه", templates: "القوالب", integrations: "التكاملات", agents: "وكلاء الذكاء", operations: "العمليات", create: "حلقة جديدة",
     search: "ابحث في المشاريع", account: "حساب المنشئ", signOut: "تسجيل الخروج", menu: "فتح القائمة",
     close: "إغلاق القائمة", collapse: "طي الشريط الجانبي", expand: "توسيع الشريط الجانبي", home: "الرئيسية",
     workspace: "مساحة العمل", system: "النظام", language: "English", skip: "انتقل إلى المحتوى",
