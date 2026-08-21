@@ -95,13 +95,13 @@ test("Auto Director vs Manual mode initialization and Generation Monitor transpa
     projectKind: gahwa.kind,
     projectBible: gahwa.bible,
     directorMode: "manual",
-    selectedImageModel: "imagen-3.0-generate-002",
+    selectedImageModel: "gemini-3-pro-image",
     selectedVideoModel: "veo-3.1-generate-preview",
     selectedTTSModel: "gemini-3.1-flash-tts-preview",
   });
 
   assert.equal(manualProd.directorMode, "manual");
-  assert.equal(manualProd.selectedImageModel, "imagen-3.0-generate-002");
+  assert.equal(manualProd.selectedImageModel, "gemini-3-pro-image");
   assert.equal(manualProd.selectedVideoModel, "veo-3.1-generate-preview");
 });
 
@@ -206,4 +206,48 @@ test("Creates test episodes across all projects (Future Gahwa, Iyal Al Halal, Mi
 
   const stored = await store.listProductions("test-creator");
   assert.ok(stored.length >= 4);
+});
+
+test("Model defaults regression: no Imagen 3 or Veo 2 as default models", async () => {
+  const { createProduction } = await import("../lib/agents/pipeline.ts");
+  const { builtinProjects } = await import("../lib/projects.ts");
+
+  const gahwa = builtinProjects("reg-user").find((p) => p.id === "future-gahwa");
+  assert.ok(gahwa);
+
+  const prod = createProduction("برق يتعلم يصب القهوة", "ar", "reg-user", "google", undefined, {
+    projectId: gahwa.id,
+    projectName: gahwa.name,
+    projectKind: gahwa.kind,
+    projectBible: gahwa.bible,
+  });
+
+  // Must not use deprecated models by default
+  assert.notEqual(prod.selectedImageModel, "imagen-3.0-generate-002");
+  assert.notEqual(prod.selectedVideoModel, "veo-2.0-generate-001");
+  assert.notEqual(prod.selectedTTSModel, "gemini-2.5-flash");
+
+  // Must use current supported models
+  assert.match(prod.selectedImageModel || "", /gemini-3\.1-flash-image/);
+  assert.match(prod.selectedVideoModel || "", /veo-3\.1/);
+  assert.match(prod.selectedTTSModel || "", /gemini-3\.1-flash-tts-preview/);
+});
+
+test("Honest monitor state: actualModel starts null/unrun and realExecution starts false", async () => {
+  const { createProduction } = await import("../lib/agents/pipeline.ts");
+  const { builtinProjects } = await import("../lib/projects.ts");
+
+  const gahwa = builtinProjects("reg-user").find((p) => p.id === "future-gahwa");
+  const prod = createProduction("برق يتعلم يصب القهوة", "ar", "reg-user", "mock", undefined, {
+    projectId: gahwa.id,
+    projectName: gahwa.name,
+    projectKind: gahwa.kind,
+    projectBible: gahwa.bible,
+  });
+
+  assert.ok(prod.generationMonitor && prod.generationMonitor.length === 7);
+  for (const entry of prod.generationMonitor) {
+    assert.equal(entry.actualModel, null, `actualModel for stage ${entry.stage} must be null initially`);
+    assert.equal(entry.realExecution, false, `realExecution for stage ${entry.stage} must be false initially`);
+  }
 });

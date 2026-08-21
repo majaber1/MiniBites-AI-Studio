@@ -50,7 +50,7 @@ export default function StudioPage() {
   const [directorMode, setDirectorMode] = useState<DirectorMode>("auto");
   const [selectedImageModel, setSelectedImageModel] = useState("gemini-3.1-flash-image");
   const [selectedVideoModel, setSelectedVideoModel] = useState("veo-3.1-generate-preview");
-  const [selectedTTSModel, setSelectedTTSModel] = useState("gemini-2.5-flash");
+  const [selectedTTSModel, setSelectedTTSModel] = useState("gemini-3.1-flash-tts-preview");
   const [audioMode, setAudioMode] = useState<"native" | "exact_tts" | "hybrid">("hybrid");
   const [provider, setProvider] = useState<string>("auto");
   const [providerOptions, setProviderOptions] = useState<ProviderOption[]>([]);
@@ -276,17 +276,16 @@ export default function StudioPage() {
             <div>
               <label style={{ fontSize: "0.78rem", display: "block", marginBottom: 2 }}>{language === "ar" ? "محرك الصور المرجعية" : "Reference Image Model"}</label>
               <select value={selectedImageModel} onChange={(e) => setSelectedImageModel(e.target.value)} style={{ width: "100%", fontSize: "0.82rem" }}>
-                <option value="gemini-3.1-flash-image">gemini-3.1-flash-image (Nano Banana 2 - Fast)</option>
-                <option value="gemini-3-pro-image">gemini-3-pro-image (Nano Banana Pro - Ultra Quality)</option>
-                <option value="imagen-3.0-generate-002">imagen-3.0-generate-002 (Google Imagen 3)</option>
+                <option value="gemini-3.1-flash-image">Nano Banana 2 (gemini-3.1-flash-image)</option>
+                <option value="gemini-3-pro-image">Nano Banana Pro (gemini-3-pro-image)</option>
                 <option value="fal/flux-pro">fal / Flux Pro (Ultra-HD)</option>
               </select>
             </div>
             <div>
               <label style={{ fontSize: "0.78rem", display: "block", marginBottom: 2 }}>{language === "ar" ? "محرك الفيديو الأساسي" : "Primary Video Engine"}</label>
               <select value={selectedVideoModel} onChange={(e) => setSelectedVideoModel(e.target.value)} style={{ width: "100%", fontSize: "0.82rem" }}>
-                <option value="veo-3.1-generate-preview">veo-3.1-generate-preview (Google Veo 3.1)</option>
-                <option value="veo-2.0-generate-001">veo-2.0-generate-001 (Google Veo 2.0)</option>
+                <option value="veo-3.1-fast-generate-preview">Veo 3.1 Fast (veo-3.1-fast-generate-preview)</option>
+                <option value="veo-3.1-generate-preview">Veo 3.1 Quality (veo-3.1-generate-preview)</option>
                 <option value="fal/kling-video">fal / Kling 1.6 (High-Motion)</option>
               </select>
             </div>
@@ -301,8 +300,7 @@ export default function StudioPage() {
             <div>
               <label style={{ fontSize: "0.78rem", display: "block", marginBottom: 2 }}>{language === "ar" ? "محرك الدبلجة والصوت" : "TTS Speech Model"}</label>
               <select value={selectedTTSModel} onChange={(e) => setSelectedTTSModel(e.target.value)} style={{ width: "100%", fontSize: "0.82rem" }}>
-                <option value="gemini-2.5-flash">gemini-2.5-flash (Gemini Arabic TTS)</option>
-                <option value="gemini-3.1-flash-tts-preview">gemini-3.1-flash-tts-preview</option>
+                <option value="gemini-3.1-flash-tts-preview">Gemini 3.1 Flash TTS (gemini-3.1-flash-tts-preview)</option>
               </select>
             </div>
           </div>
