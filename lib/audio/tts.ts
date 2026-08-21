@@ -74,7 +74,7 @@ export function isGeminiTTSConfigured(): boolean {
 
 export async function generateGeminiSpeech(req: TTSRequest): Promise<TTSResult> {
   const apiKey = cleanEnv("GEMINI_API_KEY");
-  const model = cleanEnv("GOOGLE_TTS_MODEL") ?? "gemini-2.5-flash";
+  const model = cleanEnv("GOOGLE_TTS_MODEL") ?? "gemini-3.1-flash-tts-preview";
   const exactText = req.exactText.trim();
   if (!exactText) throw new Error("TTS request text cannot be empty.");
 

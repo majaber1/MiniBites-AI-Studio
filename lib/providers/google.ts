@@ -46,7 +46,7 @@ export interface GoogleImageResult {
 /** Generate a visual reference image (e.g. MiniBites Kitchen Master Reference or Character Reference) */
 export async function generateGoogleImage(prompt: string, options: GoogleImageOptions = {}): Promise<GoogleImageResult> {
   const apiKey = cleanEnv("GEMINI_API_KEY");
-  const model = cleanEnv("GOOGLE_IMAGE_MODEL") ?? "imagen-3.0-generate-002";
+  const model = cleanEnv("GOOGLE_IMAGE_MODEL") ?? "gemini-3.1-flash-image";
   const aspectRatio = options.aspectRatio ?? "9:16";
 
   if (!apiKey) {
@@ -84,7 +84,7 @@ export async function generateGoogleImage(prompt: string, options: GoogleImageOp
     }
   }
 
-  // Multimodal Gemini Image generation endpoint (gemini-2.5-flash-image / gemini-2.0-flash)
+  // Multimodal Gemini Image generation endpoint (gemini-3.1-flash-image / gemini-3-pro-image / Nano Banana 2)
   const res = await gFetch(`${G_BASE}/models/${model}:generateContent`, {
     method: "POST",
     body: JSON.stringify({
@@ -110,7 +110,7 @@ export async function generateGoogleImage(prompt: string, options: GoogleImageOp
 
 /** Style-neutral first frame: the project prompt decides realism vs animation. */
 async function generateKeyframe(input: ShotInput): Promise<{ data: string; mimeType: string } | null> {
-  const model = cleanEnv("GOOGLE_IMAGE_MODEL") ?? "imagen-3.0-generate-002";
+  const model = cleanEnv("GOOGLE_IMAGE_MODEL") ?? "gemini-3.1-flash-image";
   try {
     const result = await generateGoogleImage(
       `First-frame reference keyframe for a vertical 9:16 video. Match the requested visual style exactly and preserve all identity/continuity instructions. ${input.prompt}`,
@@ -118,7 +118,7 @@ async function generateKeyframe(input: ShotInput): Promise<{ data: string; mimeT
     );
     return { data: result.base64Data, mimeType: result.mimeType };
   } catch (err) {
-    console.error("Google keyframe generation note, proceeding with direct video generation:", err);
+    console.warn(`Keyframe generation via ${model} was not completed; proceeding with text-only Veo prompt.`, err);
     return null;
   }
 }
@@ -155,7 +155,7 @@ export class GoogleVeoProvider implements VideoProvider {
     maxSeconds: 8,
   };
   readonly configurationHint = "Set GEMINI_API_KEY (Veo access). Optional: GOOGLE_VIDEO_MODEL, GOOGLE_IMAGE_MODEL, FAL_KEY (hosting).";
-  private videoModel = cleanEnv("GOOGLE_VIDEO_MODEL") ?? "veo-2.0-generate-001";
+  private videoModel = cleanEnv("GOOGLE_VIDEO_MODEL") ?? "veo-3.1-generate-preview";
 
   get name() {
     return `Google (Veo: ${this.videoModel}, native audio)`;

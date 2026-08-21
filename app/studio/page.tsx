@@ -276,7 +276,8 @@ export default function StudioPage() {
             <div>
               <label style={{ fontSize: "0.78rem", display: "block", marginBottom: 2 }}>{language === "ar" ? "محرك الصور المرجعية" : "Reference Image Model"}</label>
               <select value={selectedImageModel} onChange={(e) => setSelectedImageModel(e.target.value)} style={{ width: "100%", fontSize: "0.82rem" }}>
-                <option value="gemini-3.1-flash-image">gemini-3.1-flash-image (Nano Banana 2)</option>
+                <option value="gemini-3.1-flash-image">gemini-3.1-flash-image (Nano Banana 2 - Fast)</option>
+                <option value="gemini-3-pro-image">gemini-3-pro-image (Nano Banana Pro - Ultra Quality)</option>
                 <option value="imagen-3.0-generate-002">imagen-3.0-generate-002 (Google Imagen 3)</option>
                 <option value="fal/flux-pro">fal / Flux Pro (Ultra-HD)</option>
               </select>

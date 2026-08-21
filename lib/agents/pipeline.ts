@@ -115,7 +115,7 @@ export function createProduction(subject: string, language: "en" | "ar", ownerKe
 
   const imageModel = options.selectedImageModel || (process.env.GOOGLE_IMAGE_MODEL || "gemini-3.1-flash-image (Nano Banana 2)");
   const videoModel = options.selectedVideoModel || (providerChoice === "google" ? "veo-3.1-generate-preview (Google Veo 3.1)" : provider.name);
-  const ttsModel = options.selectedTTSModel || (process.env.GOOGLE_TTS_MODEL || "gemini-2.5-flash");
+  const ttsModel = options.selectedTTSModel || (process.env.GOOGLE_TTS_MODEL || "gemini-3.1-flash-tts-preview");
 
   const p: Production = {
     id: productionId ?? `mb_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
@@ -161,7 +161,7 @@ export function createProduction(subject: string, language: "en" | "ar", ownerKe
         stage: "video",
         provider: provider.name,
         selectedModel: videoModel,
-        actualModel: providerChoice === "google" ? (process.env.GOOGLE_VIDEO_MODEL || "veo-2.0-generate-001") : provider.name,
+        actualModel: providerChoice === "google" ? (process.env.GOOGLE_VIDEO_MODEL || "veo-3.1-generate-preview") : provider.name,
         whySelected: directorMode === "auto" ? `Auto Director: Selected ${provider.name} for 9:16 vertical composition and native ambient audio.` : "Manual Mode: Explicit video provider chosen.",
         status: "pending",
         audioMode,
@@ -171,7 +171,7 @@ export function createProduction(subject: string, language: "en" | "ar", ownerKe
         stage: "audio",
         provider: "Google (Gemini TTS)",
         selectedModel: ttsModel,
-        actualModel: process.env.GOOGLE_TTS_MODEL || "gemini-2.5-flash",
+        actualModel: process.env.GOOGLE_TTS_MODEL || "gemini-3.1-flash-tts-preview",
         whySelected: directorMode === "auto" ? "Auto Director: Selected for natural Arabic accents (Najdi & Bedouin) and exact sentence preservation." : "Manual Mode: Explicit audio TTS configuration.",
         status: "pending",
         audioMode,

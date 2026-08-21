@@ -13,8 +13,8 @@ export function integrationStatuses(): IntegrationStatus[] {
   const store = getStore();
   const geminiKey = Boolean(cleanEnv("GEMINI_API_KEY"));
   const falKey = Boolean(cleanEnv("FAL_KEY"));
-  const imageModel = cleanEnv("GOOGLE_IMAGE_MODEL") ?? "imagen-3.0-generate-002";
-  const videoModel = cleanEnv("GOOGLE_VIDEO_MODEL") ?? "veo-2.0-generate-001";
+  const imageModel = cleanEnv("GOOGLE_IMAGE_MODEL") ?? "gemini-3.1-flash-image";
+  const videoModel = cleanEnv("GOOGLE_VIDEO_MODEL") ?? "veo-3.1-generate-preview";
   const ttsModel = cleanEnv("GOOGLE_TTS_MODEL") ?? "gemini-2.5-flash";
 
   return [
