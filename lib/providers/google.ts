@@ -5,7 +5,7 @@
 //   3. Finished MP4 is re-hosted on fal/durable storage for browser playback + merge.
 //   4. When Google is selected, generation is performed exclusively with Google.
 // ---------------------------------------------------------------------------
-import { cleanEnv } from "@/lib/env";
+import { cleanEnv } from "../env";
 import type { ProviderShotStatus, ShotInput, ShotResult, VideoProvider } from "./types";
 
 const G_BASE = "https://generativelanguage.googleapis.com/v1beta";

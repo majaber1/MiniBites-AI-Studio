@@ -1,5 +1,5 @@
-import { cleanEnv } from "@/lib/env";
-import type { CharacterVoiceProfile } from "@/lib/types";
+import { cleanEnv } from "../env";
+import type { CharacterVoiceProfile } from "../types";
 
 const G_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
