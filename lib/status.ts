@@ -50,7 +50,7 @@ export function integrationStatuses(): IntegrationStatus[] {
     // --- MEDIA ENGINES ---
     {
       key: "google-image",
-      label: `Google Gemini / Imagen Image (${imageModel})`,
+      label: `Google Nano Banana Image (${imageModel})`,
       category: "media",
       configured: geminiKey,
       status: geminiKey ? "ready" : "not_connected",
@@ -68,7 +68,7 @@ export function integrationStatuses(): IntegrationStatus[] {
     },
     {
       key: "google-tts",
-      label: `Gemini Text-to-Speech (${ttsModel})`,
+      label: `Gemini Arabic Text-to-Speech (${ttsModel})`,
       category: "media",
       configured: geminiKey,
       status: geminiKey ? "ready" : "not_connected",
