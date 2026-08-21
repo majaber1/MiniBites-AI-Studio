@@ -152,6 +152,15 @@ export interface ProviderHealthMetrics {
   lastSuccess: string | null;
   lastFailure: string | null;
   lastVerified: string | null;
+  authStatus?: "PASS" | "FAIL" | "UNKNOWN";
+  ttsStatus?: "WORKING" | "FAILED" | "UNKNOWN";
+  imageGenStatus?: "QUOTA BLOCKED" | "WORKING" | "FAILED" | "UNKNOWN";
+  veoStatus?: "QUOTA BLOCKED" | "WORKING" | "FAILED" | "UNKNOWN";
+  failureScope?: "PROJECT / BILLING / QUOTA" | "MODEL" | "NETWORK" | "NONE";
+  lastHttpStatus?: number | null;
+  actualSpendUsd?: number;
+  veoNativeAudioCapability?: "SUPPORTED / ALWAYS ON";
+  actualVeoAudio?: "NOT RUN YET" | "GENERATED" | "FAILED";
 }
 
 export interface CostTrace {

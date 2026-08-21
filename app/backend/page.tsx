@@ -813,14 +813,53 @@ export default function BackendObservatoryPage() {
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: "0.8rem" }}>
                       <div>Channel: <span className="mono">{h.channel}</span></div>
-                      <div>Quota: <span className="mono">{h.quotaState}</span></div>
+                      <div>Quota: <span className="mono" style={{ color: h.quotaState === "EXHAUSTED" ? "#e74c3c" : "inherit" }}>{h.quotaState}</span></div>
                       <div>Circuit: <span className="mono">{h.circuitBreaker}</span></div>
                       <div>Success Rate: <span className="mono">{h.recentSuccessRate !== null ? `${(h.recentSuccessRate * 100).toFixed(0)}%` : "UNKNOWN"}</span></div>
-                      <div>429 Rate: <span className="mono">{h.rate429 !== null ? `${h.rate429}%` : "UNKNOWN"}</span></div>
-                      <div>5xx Rate: <span className="mono">{h.rate5xx !== null ? `${h.rate5xx}%` : "UNKNOWN"}</span></div>
+                      <div>429 Rate: <span className="mono">{h.rate429 !== null ? `${h.rate429 * 100}%` : "UNKNOWN"}</span></div>
                       <div>p50 Latency: <span className="mono">{h.p50Ms ? `${h.p50Ms}ms` : "UNKNOWN"}</span></div>
-                      <div>p95 Latency: <span className="mono">{h.p95Ms ? `${h.p95Ms}ms` : "UNKNOWN"}</span></div>
                     </div>
+
+                    {h.authStatus && (
+                      <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--line)", fontSize: "0.78rem", display: "grid", gap: 4 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Authentication:</span>
+                          <span className="mono" style={{ color: h.authStatus === "PASS" ? "#2ecc71" : "#e74c3c", fontWeight: 600 }}>{h.authStatus}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>TTS:</span>
+                          <span className="mono" style={{ color: h.ttsStatus === "WORKING" ? "#2ecc71" : "#e74c3c", fontWeight: 600 }}>{h.ttsStatus}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Image Generation:</span>
+                          <span className="mono" style={{ color: h.imageGenStatus?.includes("BLOCKED") ? "#e74c3c" : "#2ecc71", fontWeight: 600 }}>{h.imageGenStatus}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Veo 3.1:</span>
+                          <span className="mono" style={{ color: h.veoStatus?.includes("BLOCKED") ? "#e74c3c" : "#2ecc71", fontWeight: 600 }}>{h.veoStatus}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Failure Scope:</span>
+                          <span className="mono" style={{ color: "#e67e22", fontWeight: 600 }}>{h.failureScope}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Last HTTP:</span>
+                          <span className="mono" style={{ fontWeight: 600 }}>{h.lastHttpStatus ?? "N/A"}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Actual Spend:</span>
+                          <span className="mono" style={{ fontWeight: 600 }}>${h.actualSpendUsd?.toFixed(2) ?? "0.00"}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Veo Native Audio:</span>
+                          <span className="mono" style={{ color: "#2ecc71", fontWeight: 600 }}>{h.veoNativeAudioCapability}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Actual Veo Audio:</span>
+                          <span className="mono" style={{ color: "var(--dim)", fontWeight: 600 }}>{h.actualVeoAudio}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

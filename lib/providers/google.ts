@@ -192,7 +192,6 @@ export class GoogleVeoProvider implements VideoProvider {
           aspectRatio: "9:16",
           durationSeconds: seconds,
           negativePrompt: input.negativePrompt,
-          audioEnabled: true,
         },
       }),
     });
