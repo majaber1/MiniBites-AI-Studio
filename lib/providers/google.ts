@@ -172,6 +172,13 @@ export class GoogleVeoProvider implements VideoProvider {
   async submitShot(input: ShotInput) {
     if (!this.configured) throw new Error("Google Veo is not configured (GEMINI_API_KEY missing).");
     let keyframe = await generateKeyframe(input);
+    if (!keyframe && input.referenceImageUrl) {
+      if (input.referenceImageUrl.startsWith("data:")) {
+        const [header, b64] = input.referenceImageUrl.split(",");
+        const mimeType = header.split(":")[1]?.split(";")[0] || "image/jpeg";
+        if (b64) keyframe = { data: b64, mimeType };
+      }
+    }
     const seconds = [4, 5, 6, 8].reduce((best, d) => (Math.abs(d - input.seconds) < Math.abs(best - input.seconds) ? d : best), 8);
     const instance: Record<string, unknown> = { prompt: input.prompt };
     if (keyframe) {

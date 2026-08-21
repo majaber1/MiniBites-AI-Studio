@@ -1,8 +1,7 @@
 // ---------------------------------------------------------------------------
 // Kiswani AI Studio agent pipeline — a real, persisted state machine.
 // No fake progress: state only advances when real work completes.
-// ---------------------------------------------------------------------------
-import type { AgentId, AgentState, CreativeStyle, DurationPreset, Production, ProjectBible, ProjectKind, ProviderChoice, Shot, StoryMode } from "../types";
+import type { AgentId, AgentState, AudioMode, CreativeStyle, DirectorMode, DurationPreset, Production, ProjectBible, ProjectKind, ProviderChoice, Shot, StoryMode } from "../types";
 import { getVideoProvider } from "../providers";
 import { createStudioPlan } from "../studio-planner";
 import { getStore } from "../store";
@@ -28,6 +27,11 @@ export interface CreationOptions {
   style?: CreativeStyle;
   storyMode?: StoryMode;
   durationPreset?: DurationPreset;
+  directorMode?: DirectorMode;
+  audioMode?: AudioMode;
+  selectedImageModel?: string;
+  selectedVideoModel?: string;
+  selectedTTSModel?: string;
   projectId?: string;
   projectName?: string;
   projectKind?: ProjectKind;
@@ -100,10 +104,19 @@ function promptContract(p: Production, action: string, camera: string) {
     prompt: `${GENERAL_STYLE_PROMPT} Project: ${p.projectName ?? "Kiswani project"}. Project Bible: ${bible}. Creative direction: ${STYLE_DETAILS[p.style]}. Story mode: ${p.storyMode}. Video idea: ${p.episodeTitle ?? p.dish}. Scene: ${action}. Camera: ${camera}.`,
     negativePrompt: `${GENERAL_NEGATIVE}${p.projectBible?.negativeRules?.length ? `, ${p.projectBible.negativeRules.join(", ")}` : ""}`,
   };
-}export function createProduction(subject: string, language: "en" | "ar", ownerKey: string, providerChoice?: ProviderChoice, productionId?: string, options: CreationOptions = {}): Production {
+}
+
+export function createProduction(subject: string, language: "en" | "ar", ownerKey: string, providerChoice?: ProviderChoice, productionId?: string, options: CreationOptions = {}): Production {
   const provider = getVideoProvider(providerChoice);
   const now = new Date().toISOString();
   const kind = options.projectKind ?? "mini_food";
+  const directorMode = options.directorMode ?? "auto";
+  const audioMode = options.audioMode ?? options.projectBible?.defaultAudioMode ?? (kind === "character_series" ? "hybrid" : "native");
+
+  const imageModel = options.selectedImageModel || (process.env.GOOGLE_IMAGE_MODEL || "gemini-3.1-flash-image (Nano Banana 2)");
+  const videoModel = options.selectedVideoModel || (providerChoice === "google" ? "veo-3.1-generate-preview (Google Veo 3.1)" : provider.name);
+  const ttsModel = options.selectedTTSModel || (process.env.GOOGLE_TTS_MODEL || "gemini-2.5-flash");
+
   const p: Production = {
     id: productionId ?? `mb_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
     dish: subject,
@@ -117,8 +130,81 @@ function promptContract(p: Production, action: string, camera: string) {
     storyMode: options.storyMode ?? (kind === "character_series" ? "funny" : "satisfying"),
     durationPreset: options.durationPreset ?? "standard",
     language,
-    audioMode: options.projectBible?.defaultAudioMode ?? (kind === "character_series" ? "hybrid" : "native"),
+    directorMode,
+    audioMode,
     kitchenReference: options.projectBible?.kitchenReference ? structuredClone(options.projectBible.kitchenReference) : undefined,
+    selectedImageModel: imageModel,
+    selectedVideoModel: videoModel,
+    selectedTTSModel: ttsModel,
+    generationMonitor: [
+      {
+        stage: "planning",
+        provider: process.env.ANTHROPIC_API_KEY ? "Anthropic" : process.env.GEMINI_API_KEY ? "Google" : "Deterministic Studio Planner",
+        selectedModel: process.env.ANTHROPIC_API_KEY ? "claude-3-5-sonnet-latest" : process.env.GEMINI_API_KEY ? "gemini-2.5-flash" : "Deterministic Planner",
+        actualModel: process.env.ANTHROPIC_API_KEY ? "claude-3-5-sonnet-latest" : process.env.GEMINI_API_KEY ? "gemini-2.5-flash" : "kiswani-planner-v4",
+        whySelected: directorMode === "auto" ? "Auto Director: Selected for structured story breakdown, 9:16 cinematography, and exact Arabic line preservation." : "Manual Mode: User chosen planner configuration.",
+        status: "running",
+        startedAt: now,
+        fallbackUsed: false,
+      },
+      {
+        stage: "reference_image",
+        provider: "Google",
+        selectedModel: imageModel,
+        actualModel: process.env.GOOGLE_IMAGE_MODEL || "gemini-3.1-flash-image",
+        whySelected: directorMode === "auto" ? "Auto Director: Selected for high-fidelity character anchor generation with 0 identity drift." : "Manual Mode: Explicit image model selected.",
+        status: "pending",
+        referenceAssets: options.projectBible?.referenceImageUrls ?? (options.projectBible?.kitchenReference?.imageUrl ? [options.projectBible.kitchenReference.imageUrl] : []),
+        fallbackUsed: false,
+      },
+      {
+        stage: "video",
+        provider: provider.name,
+        selectedModel: videoModel,
+        actualModel: providerChoice === "google" ? (process.env.GOOGLE_VIDEO_MODEL || "veo-2.0-generate-001") : provider.name,
+        whySelected: directorMode === "auto" ? `Auto Director: Selected ${provider.name} for 9:16 vertical composition and native ambient audio.` : "Manual Mode: Explicit video provider chosen.",
+        status: "pending",
+        audioMode,
+        fallbackUsed: false,
+      },
+      {
+        stage: "audio",
+        provider: "Google (Gemini TTS)",
+        selectedModel: ttsModel,
+        actualModel: process.env.GOOGLE_TTS_MODEL || "gemini-2.5-flash",
+        whySelected: directorMode === "auto" ? "Auto Director: Selected for natural Arabic accents (Najdi & Bedouin) and exact sentence preservation." : "Manual Mode: Explicit audio TTS configuration.",
+        status: "pending",
+        audioMode,
+        fallbackUsed: false,
+      },
+      {
+        stage: "assembly",
+        provider: falAssemblyConfigured() ? "fal (FFmpeg merge)" : "Local / Direct Stream",
+        selectedModel: "ffmpeg-stitch-9:16",
+        actualModel: "ffmpeg-stitch-9:16",
+        whySelected: "Stitches accepted vertical MP4 video segments with audio sync.",
+        status: "pending",
+        fallbackUsed: false,
+      },
+      {
+        stage: "storage",
+        provider: durableMediaConfigured() ? "Vercel Blob" : "Local Disk Storage",
+        selectedModel: "durable-mp4-store",
+        actualModel: "durable-mp4-store",
+        whySelected: "Stores final assembled video for cross-platform distribution.",
+        status: "pending",
+        fallbackUsed: false,
+      },
+      {
+        stage: "publishing",
+        provider: "Kiswani Social Dispatcher",
+        selectedModel: "multi-platform-direct-api-manual-handoff",
+        actualModel: "multi-platform-direct-api-manual-handoff",
+        whySelected: "Dispatches approved video to connected platforms and provides safe manual handoff.",
+        status: "pending",
+        fallbackUsed: false,
+      },
+    ],
     createdAt: now,
     updatedAt: now,
     status: "planning",
@@ -408,11 +494,15 @@ export async function retryShot(p: Production, shotId: string): Promise<Producti
 export async function duplicateProduction(source: Production): Promise<Production> {
   const duplicate = createProduction(source.dish, source.language, source.ownerKey, source.providerChoice, undefined, {
     description: source.description, style: source.style, storyMode: source.storyMode, durationPreset: source.durationPreset,
+    directorMode: source.directorMode, audioMode: source.audioMode,
+    selectedImageModel: source.selectedImageModel, selectedVideoModel: source.selectedVideoModel, selectedTTSModel: source.selectedTTSModel,
     projectId: source.projectId, projectName: source.projectName, projectKind: source.projectKind, projectBible: source.projectBible ? structuredClone(source.projectBible) : undefined,
   });
   duplicate.status = "planned"; duplicate.planSource = source.planSource; duplicate.recipeSummary = source.recipeSummary; duplicate.miniatureBrief = source.miniatureBrief;
   duplicate.visualBible = source.visualBible ? structuredClone(source.visualBible) : undefined; duplicate.publishTitle = source.publishTitle; duplicate.publishCaption = source.publishCaption; duplicate.publishHashtags = source.publishHashtags ? [...source.publishHashtags] : undefined;
   duplicate.audioMode = source.audioMode;
+  duplicate.directorMode = source.directorMode;
+  duplicate.generationMonitor = source.generationMonitor ? structuredClone(source.generationMonitor) : undefined;
   duplicate.kitchenReference = source.kitchenReference ? structuredClone(source.kitchenReference) : undefined;
   duplicate.shots = source.shots.map((shot, index) => ({
     id: `shot_${index + 1}`,

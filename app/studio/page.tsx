@@ -3,12 +3,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError } from "@/components/api";
 import AccessGate from "@/components/AccessGate";
 import StatusBadge from "@/components/StatusBadge";
-import type { CreativeStyle, DurationPreset, Production, StoryMode, StudioProject } from "@/lib/types";
+import GenerationMonitor from "@/components/GenerationMonitor";
+import type { CreativeStyle, DirectorMode, DurationPreset, Production, StoryMode, StudioProject } from "@/lib/types";
 import { getCreativeTemplate } from "@/lib/templates";
 import { useLocale } from "@/components/LocaleProvider";
 
 const FOOD_SUGGESTIONS = ["Mini Saudi Kabsa", "Mini Pizza", "Tiny Kunafa", "Mini Sushi", "Small Pancakes", "Arabic Coffee"];
 const IYAL_SUGGESTIONS = ["ذيبان أول مرة يجرب الكبسة", "فهيد في عزيمة منسف", "ذيبان وفهيد في الكشتة", "شراء سيارة مستعملة", "منفوشة تقفل النقاش", "السعودي أول مرة بعمان"];
+const FUTURE_GAHWA_SUGGESTIONS = [
+  "برق يتعلم يصب القهوة",
+  "برق وحساب زاوية الصب ٣٧.٢ درجة",
+  "أبو ناصر ومسألة الخوارزمية",
+  "برق يجرب التمر السكري",
+  "الضيف المستعجل وبرق",
+  "ضيافة بلا كود",
+];
 const SERIES_SUGGESTIONS = ["First episode", "Unexpected visitor", "Road trip", "Dinner invitation", "A friendly challenge", "The misunderstanding"];
 const STYLES: Array<{ id: CreativeStyle; label: string; icon: string }> = [
   { id: "cinematic", label: "Cinematic", icon: "🎬" }, { id: "cozy", label: "Warm / Cozy", icon: "☀️" },
@@ -36,12 +45,17 @@ export default function StudioPage() {
   const [language, setLanguage] = useState<"en" | "ar">("en");
   const [description, setDescription] = useState("");
   const [style, setStyle] = useState<CreativeStyle>("cinematic");
-  const [storyMode, setStoryMode] = useState<StoryMode>("satisfying");
+  const [storyMode, setStoryMode] = useState<StoryMode>("funny");
   const [durationPreset, setDurationPreset] = useState<DurationPreset>("standard");
+  const [directorMode, setDirectorMode] = useState<DirectorMode>("auto");
+  const [selectedImageModel, setSelectedImageModel] = useState("gemini-3.1-flash-image");
+  const [selectedVideoModel, setSelectedVideoModel] = useState("veo-3.1-generate-preview");
+  const [selectedTTSModel, setSelectedTTSModel] = useState("gemini-2.5-flash");
+  const [audioMode, setAudioMode] = useState<"native" | "exact_tts" | "hybrid">("hybrid");
   const [provider, setProvider] = useState<string>("auto");
   const [providerOptions, setProviderOptions] = useState<ProviderOption[]>([]);
   const [projects, setProjects] = useState<StudioProject[]>([]);
-  const [projectId, setProjectId] = useState("minibites");
+  const [projectId, setProjectId] = useState("future-gahwa");
   const [production, setProduction] = useState<Production | null>(null);
   const [error, setError] = useState("");
   const [authStatus, setAuthStatus] = useState<number | null>(null);
@@ -51,13 +65,22 @@ export default function StudioPage() {
 
   const currentProject = useMemo(() => projects.find((p) => p.id === projectId) ?? null, [projects, projectId]);
   const isFood = (currentProject?.kind ?? "mini_food") === "mini_food";
-  const suggestions = currentProject?.id === "iyal-al-halal" ? IYAL_SUGGESTIONS : isFood ? FOOD_SUGGESTIONS : SERIES_SUGGESTIONS;
+  const suggestions = currentProject?.id === "future-gahwa"
+    ? FUTURE_GAHWA_SUGGESTIONS
+    : currentProject?.id === "iyal-al-halal"
+    ? IYAL_SUGGESTIONS
+    : isFood
+    ? FOOD_SUGGESTIONS
+    : SERIES_SUGGESTIONS;
 
   useEffect(() => setLanguage(locale), [locale]);
   useEffect(() => {
     if (currentProject?.kind === "character_series") {
       setStoryMode("funny");
+      setAudioMode("hybrid");
       setStyle((value) => value === "asmr" || value === "macro" || value === "workshop" ? "playful" : value);
+    } else {
+      setAudioMode("native");
     }
     if (currentProject?.defaultProvider) {
       setProvider(currentProject.defaultProvider);
@@ -96,7 +119,11 @@ export default function StudioPage() {
       if (Array.isArray(statusData.providers)) setProviderOptions(statusData.providers);
       if (Array.isArray(projectData.projects)) {
         setProjects(projectData.projects);
-        if (requestedProject && projectData.projects.some((p: StudioProject) => p.id === requestedProject)) setProjectId(requestedProject);
+        if (requestedProject && projectData.projects.some((p: StudioProject) => p.id === requestedProject)) {
+          setProjectId(requestedProject);
+        } else if (projectData.projects.some((p: StudioProject) => p.id === "future-gahwa")) {
+          setProjectId("future-gahwa");
+        }
       }
     }).catch(() => undefined);
   }, []);
@@ -113,7 +140,23 @@ export default function StudioPage() {
       createRequestId.current ??= crypto.randomUUID();
       const { production: p } = await api<{ production: Production }>("/api/productions", {
         method: "POST",
-        body: JSON.stringify({ projectId, title: subject, dish: subject, description, language, style, storyMode, durationPreset, provider, clientRequestId: createRequestId.current }),
+        body: JSON.stringify({
+          projectId,
+          title: subject,
+          dish: subject,
+          description,
+          language,
+          style,
+          storyMode,
+          durationPreset,
+          directorMode,
+          audioMode,
+          selectedImageModel: directorMode === "manual" ? selectedImageModel : undefined,
+          selectedVideoModel: directorMode === "manual" ? selectedVideoModel : undefined,
+          selectedTTSModel: directorMode === "manual" ? selectedTTSModel : undefined,
+          provider: directorMode === "manual" ? provider : "auto",
+          clientRequestId: createRequestId.current,
+        }),
       });
       createRequestId.current = null; setProduction(p); setAuthStatus(null);
       window.localStorage.setItem("ks_last_production", p.id);
@@ -188,14 +231,83 @@ export default function StudioPage() {
     <section className="hero" style={{ paddingBottom: 8 }}>
       <div className="eyebrow">Kiswani AI Studio</div>
       <h1>{language === "ar" ? "ماذا سنصنع اليوم؟" : "What are we creating today?"}</h1>
-      <p className="lede">{language === "ar" ? "اختر المشروع، اكتب فكرة الحلقة، اختر محرك الفيديو، وراقب الرحلة حتى النشر." : "Choose a project, describe the episode, pick a video engine, and follow it all the way to publishing."}</p>
+      <p className="lede">{language === "ar" ? "اختر المشروع، اكتب فكرة الحلقة، حدد وضع المخرج الذكي، وراقب التوليد بشفافية حتى النشر." : "Choose a project, describe the episode, set AI Director mode, and follow complete model transparency to publishing."}</p>
     </section>
 
     {authStatus !== null ? <AccessGate status={authStatus} onUnlocked={() => { setAuthStatus(null); if (production) poll(production.id); }} /> : <div className="ticket creator-form" dir={language === "ar" ? "rtl" : "ltr"}>
       <div className="ticket-head">{language === "ar" ? "حلقة / فيديو جديد" : "New episode / video"}</div>
+
       <div className="creator-options">
         <label>{language === "ar" ? "المشروع" : "Project"}<select value={projectId} onChange={(e) => { setProjectId(e.target.value); setSubject(""); }}>{projects.map((p) => <option key={p.id} value={p.id}>{p.icon ?? "🎬"} {language === "ar" ? p.nameAr ?? p.name : p.name}</option>)}</select></label>
       </div>
+
+      {/* AI Director vs Manual Mode Switcher */}
+      <div style={{ background: "var(--card-subtle, rgba(255,255,255,0.03))", padding: 12, borderRadius: 10, marginBottom: 12, border: "1px solid var(--line)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <strong>{language === "ar" ? "وضع الإخراج والتحكم" : "Director & Model Mode"}</strong>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              type="button"
+              className={`button compact ${directorMode === "auto" ? "" : "ghost"}`}
+              onClick={() => setDirectorMode("auto")}
+              style={{ fontSize: "0.78rem" }}
+            >
+              🤖 {language === "ar" ? "المخرج الذكي (AUTO)" : "AI Director (AUTO)"}
+            </button>
+            <button
+              type="button"
+              className={`button compact ${directorMode === "manual" ? "" : "ghost"}`}
+              onClick={() => setDirectorMode("manual")}
+              style={{ fontSize: "0.78rem" }}
+            >
+              ⚙️ {language === "ar" ? "يدوي / احترافي (MANUAL)" : "Pro / Manual"}
+            </button>
+          </div>
+        </div>
+
+        {directorMode === "auto" ? (
+          <p className="dim" style={{ margin: 0, fontSize: "0.82rem" }}>
+            ✨ {language === "ar"
+              ? "المخرج الذكي يختار تلقائياً: Nano Banana 2 للصور المرجعية، و Google Veo 3.1 للفيديو بدقة 9:16 مع صوت صب القهوة الطبيعي، و Gemini TTS للدبلجة العربية المطابقة."
+              : "AI Director automatically selects: Nano Banana 2 for visual anchors, Google Veo 3.1 for 9:16 vertical video + native pouring sound, and Gemini TTS for exact Arabic dialogue."}
+          </p>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
+            <div>
+              <label style={{ fontSize: "0.78rem", display: "block", marginBottom: 2 }}>{language === "ar" ? "محرك الصور المرجعية" : "Reference Image Model"}</label>
+              <select value={selectedImageModel} onChange={(e) => setSelectedImageModel(e.target.value)} style={{ width: "100%", fontSize: "0.82rem" }}>
+                <option value="gemini-3.1-flash-image">gemini-3.1-flash-image (Nano Banana 2)</option>
+                <option value="imagen-3.0-generate-002">imagen-3.0-generate-002 (Google Imagen 3)</option>
+                <option value="fal/flux-pro">fal / Flux Pro (Ultra-HD)</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: "0.78rem", display: "block", marginBottom: 2 }}>{language === "ar" ? "محرك الفيديو الأساسي" : "Primary Video Engine"}</label>
+              <select value={selectedVideoModel} onChange={(e) => setSelectedVideoModel(e.target.value)} style={{ width: "100%", fontSize: "0.82rem" }}>
+                <option value="veo-3.1-generate-preview">veo-3.1-generate-preview (Google Veo 3.1)</option>
+                <option value="veo-2.0-generate-001">veo-2.0-generate-001 (Google Veo 2.0)</option>
+                <option value="fal/kling-video">fal / Kling 1.6 (High-Motion)</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: "0.78rem", display: "block", marginBottom: 2 }}>{language === "ar" ? "نمط الصوت" : "Audio Mode"}</label>
+              <select value={audioMode} onChange={(e) => setAudioMode(e.target.value as any)} style={{ width: "100%", fontSize: "0.82rem" }}>
+                <option value="hybrid">Hybrid (Veo Ambient + Gemini TTS Dialogue)</option>
+                <option value="native">Native ASMR (Veo Physical Sounds Only)</option>
+                <option value="exact_tts">Exact TTS (Dialogue Focus)</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: "0.78rem", display: "block", marginBottom: 2 }}>{language === "ar" ? "محرك الدبلجة والصوت" : "TTS Speech Model"}</label>
+              <select value={selectedTTSModel} onChange={(e) => setSelectedTTSModel(e.target.value)} style={{ width: "100%", fontSize: "0.82rem" }}>
+                <option value="gemini-2.5-flash">gemini-2.5-flash (Gemini Arabic TTS)</option>
+                <option value="gemini-3.1-flash-tts-preview">gemini-3.1-flash-tts-preview</option>
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="form-section"><strong>{language === "ar" ? "محرك الفيديو" : "Video engine"}</strong>
         <div className="engine-grid">
           <button type="button" className={`engine-card${provider === "auto" ? " selected" : ""}`} onClick={() => setProvider("auto")}>
@@ -217,7 +329,7 @@ export default function StudioPage() {
 
       {currentProject && <div className="note"><strong>{currentProject.icon} {language === "ar" ? currentProject.nameAr ?? currentProject.name : currentProject.name}</strong><span>{language === "ar" ? currentProject.descriptionAr ?? currentProject.description : currentProject.description}</span>{currentProject.bible.characters?.length ? <small>{language === "ar" ? "الشخصيات: " : "Characters: "}{currentProject.bible.characters.map((c) => language === "ar" ? c.displayNameAr ?? c.name : c.name).join(" · ")}</small> : null}</div>}
 
-      <div className="dish-row creator-primary"><input type="text" placeholder={isFood ? (language === "ar" ? "مثال: كبسة سعودية مصغرة" : "Dish, e.g. Mini Saudi Kabsa") : (language === "ar" ? "مثال: ذيبان أول مرة يجرب الكبسة" : "Episode idea, e.g. Dheeban visits Fhaid in Riyadh")} value={subject} maxLength={100} onChange={(e) => setSubject(e.target.value)} onKeyDown={(e) => e.key === "Enter" && subject.trim().length >= 2 && startProduction()} aria-label={language === "ar" ? "فكرة الحلقة" : "Episode idea"} /></div>
+      <div className="dish-row creator-primary"><input type="text" placeholder={currentProject?.id === "future-gahwa" ? (language === "ar" ? "مثال: برق يتعلم يصب القهوة" : "Episode idea, e.g. Barq learns to pour Saudi coffee") : isFood ? (language === "ar" ? "مثال: كبسة سعودية مصغرة" : "Dish, e.g. Mini Saudi Kabsa") : (language === "ar" ? "مثال: ذيبان أول مرة يجرب الكبسة" : "Episode idea, e.g. Dheeban visits Fhaid in Riyadh")} value={subject} maxLength={100} onChange={(e) => setSubject(e.target.value)} onKeyDown={(e) => e.key === "Enter" && subject.trim().length >= 2 && startProduction()} aria-label={language === "ar" ? "فكرة الحلقة" : "Episode idea"} /></div>
       <div className="chips">{suggestions.map((s) => <button key={s} onClick={() => setSubject(s)}>{s}</button>)}</div>
       <textarea value={description} maxLength={400} onChange={(e) => setDescription(e.target.value)} placeholder={language === "ar" ? "تفاصيل إضافية: المكان، النكتة، المنتج، الحركة…" : "Optional direction: location, joke, product, action…"} aria-label={language === "ar" ? "الاتجاه الإبداعي" : "Creative direction"} />
       <div className="form-section"><strong>{language === "ar" ? "الأسلوب" : "Style"}</strong><div className="style-grid">{STYLES.map((item) => <button type="button" className={style === item.id ? "style-card selected" : "style-card"} key={item.id} onClick={() => setStyle(item.id)}><span>{item.icon}</span>{item.label}</button>)}</div></div>
@@ -435,6 +547,9 @@ function ProductionView({
           </button>
         </div>
       )}
+
+      {/* Generation Monitor & Model Inspector */}
+      <GenerationMonitor monitor={p.generationMonitor} directorMode={p.directorMode} audioMode={p.audioMode} provider={p.provider} />
 
       <div className="grid production-grid" style={{ marginTop: 14 }}>
         <details className="card advanced-panel">

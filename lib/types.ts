@@ -212,6 +212,25 @@ export interface PublishState {
   requiredAction?: string;
 }
 
+export type DirectorMode = "auto" | "manual";
+
+export interface StageMonitorEntry {
+  stage: "planning" | "reference_image" | "video" | "audio" | "assembly" | "storage" | "publishing";
+  provider: string;
+  selectedModel: string;
+  actualModel: string;
+  whySelected?: string;
+  status: "pending" | "running" | "completed" | "failed" | "skipped";
+  referenceAssets?: string[];
+  audioMode?: AudioMode;
+  estimatedCostUsd?: number | null;
+  providerJobId?: string | null;
+  startedAt?: string;
+  finishedAt?: string;
+  error?: string | null;
+  fallbackUsed: boolean;
+}
+
 export interface Production {
   id: string;
   // Legacy field kept for full backward compatibility. For non-food projects it
@@ -229,8 +248,13 @@ export interface Production {
   storyMode: StoryMode;
   durationPreset: DurationPreset;
   language: "en" | "ar";
+  directorMode?: DirectorMode;
   audioMode?: AudioMode;
   kitchenReference?: ProjectKitchenReference;
+  selectedImageModel?: string;
+  selectedVideoModel?: string;
+  selectedTTSModel?: string;
+  generationMonitor?: StageMonitorEntry[];
   createdAt: string;
   updatedAt: string;
   archivedAt?: string;

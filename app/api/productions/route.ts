@@ -42,6 +42,8 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as {
     dish?: string; title?: string; projectId?: string; description?: string; language?: string; provider?: string; clientRequestId?: string;
     style?: string; storyMode?: string; durationPreset?: string;
+    directorMode?: "auto" | "manual"; audioMode?: "native" | "exact_tts" | "hybrid";
+    selectedImageModel?: string; selectedVideoModel?: string; selectedTTSModel?: string;
   } | null;
   const subject = (body?.title ?? body?.dish ?? "").replace(/[<>{}[\]\\]/g, "").trim();
   if (!subject || subject.length < 2 || subject.length > 100) return Response.json({ error: "Enter an episode/video idea between 2 and 100 characters." }, { status: 400 });
@@ -94,6 +96,11 @@ export async function POST(req: Request) {
       style: (body?.style as CreativeStyle | undefined) ?? "cinematic",
       storyMode: (body?.storyMode as StoryMode | undefined) ?? (project.kind === "character_series" ? "funny" : "satisfying"),
       durationPreset: (body?.durationPreset as DurationPreset | undefined) ?? "standard",
+      directorMode: body?.directorMode ?? "auto",
+      audioMode: body?.audioMode ?? (project.kind === "character_series" ? "hybrid" : "native"),
+      selectedImageModel: body?.selectedImageModel,
+      selectedVideoModel: body?.selectedVideoModel,
+      selectedTTSModel: body?.selectedTTSModel,
       projectId: project.id,
       projectName: project.name,
       projectKind: project.kind,

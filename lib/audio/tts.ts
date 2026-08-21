@@ -48,6 +48,24 @@ export const DEFAULT_CHARACTER_VOICES: Record<string, CharacterVoiceProfile> = {
     language: "ar",
     dialect: "Arabic",
   },
+  "abu-nasser": {
+    voiceName: "Orus",
+    direction: "Saudi Central/Najdi direction, mature male, calm, confident, warm, dry comedic timing, unhurried pace",
+    language: "ar",
+    dialect: "Saudi Najdi Arabic",
+  },
+  "abu_nasser": {
+    voiceName: "Orus",
+    direction: "Saudi Central/Najdi direction, mature male, calm, confident, warm, dry comedic timing, unhurried pace",
+    language: "ar",
+    dialect: "Saudi Najdi Arabic",
+  },
+  barq: {
+    voiceName: "Puck",
+    direction: "Fast, energetic, witty, slightly synthetic robotic modulation, enthusiastic Saudi cadence",
+    language: "ar",
+    dialect: "Saudi Arabic",
+  },
 };
 
 export function isGeminiTTSConfigured(): boolean {

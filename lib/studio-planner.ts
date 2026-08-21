@@ -279,6 +279,169 @@ export function projectTemplatePlan(project: StudioPlanProject, subject: string,
     },
   ];
 
+  const isFutureGahwa = project.id === "future-gahwa";
+
+  const futureGahwaBase = [
+    {
+      seconds: 5,
+      action: `مشهد افتتاحي: في ركن القهوة السعودي المعاصر، برق الروبوت يقف بجانب الدلة الذهبية ويطلق مؤشر ليزري رقمي دقيق لقياس زاوية الصب بينما أبو ناصر يراقبه بهدوء.`,
+      camera: "fast establishing push-in, vertical medium shot",
+      sound: "أصوات تشغيل رقمية خفيفة + رنين الفنجان",
+      dialogue: [
+        {
+          speakerId: "barq",
+          exactText: "أبو ناصر، حسبت زاوية الصب المثالية: سبعة وثلاثين فاصلة اثنين درجة.",
+          textAr: "أبو ناصر، حسبت زاوية الصب المثالية: سبعة وثلاثين فاصلة اثنين درجة.",
+          language: "ar" as const,
+          dialect: "Saudi Digital Arabic",
+          voiceName: "Puck",
+          voiceDirection: "Fast, energetic, witty, slightly synthetic robotic modulation, enthusiastic Saudi cadence",
+        },
+      ],
+      audioPlan: {
+        audioMode: "hybrid" as const,
+        ambient: "أصوات تشغيل رقمية خفيفة + رنين الفنجان",
+        dialogue: [
+          {
+            speakerId: "barq",
+            exactText: "أبو ناصر، حسبت زاوية الصب المثالية: سبعة وثلاثين فاصلة اثنين درجة.",
+            textAr: "أبو ناصر، حسبت زاوية الصب المثالية: سبعة وثلاثين فاصلة اثنين درجة.",
+            language: "ar" as const,
+            dialect: "Saudi Digital Arabic",
+            voiceName: "Puck",
+            voiceDirection: "Fast, energetic, witty, slightly synthetic robotic modulation, enthusiastic Saudi cadence",
+          },
+        ],
+      },
+    },
+    {
+      seconds: 5,
+      action: "أبو ناصر يبتسم بهدوء ويعدل شماغه، وينظر لبرق بحكمة وتواضع أصيل مع ثبات كامل في ملامح الشخصيتين.",
+      camera: "two-shot, eye-level, subtle handheld energy",
+      sound: "صوت المجلس الهادئ وصوت صب القهوة",
+      dialogue: [
+        {
+          speakerId: "abu-nasser",
+          exactText: "يا ولدي، صب القهوة بس.",
+          textAr: "يا ولدي، صب القهوة بس.",
+          language: "ar" as const,
+          dialect: "Central Saudi (Najdi) Arabic",
+          voiceName: "Orus",
+          voiceDirection: "Saudi Central/Najdi direction, mature male, calm, confident, warm, dry comedic timing, unhurried pace",
+        },
+      ],
+      audioPlan: {
+        audioMode: "hybrid" as const,
+        ambient: "صوت المجلس الهادئ وصوت صب القهوة",
+        dialogue: [
+          {
+            speakerId: "abu-nasser",
+            exactText: "يا ولدي، صب القهوة بس.",
+            textAr: "يا ولدي، صب القهوة بس.",
+            language: "ar" as const,
+            dialect: "Central Saudi (Najdi) Arabic",
+            voiceName: "Orus",
+            voiceDirection: "Saudi Central/Najdi direction, mature male, calm, confident, warm, dry comedic timing, unhurried pace",
+          },
+        ],
+      },
+    },
+    {
+      seconds: 5,
+      action: "برق يحرّك ذراعه الميكانيكية ببطء مفرط محاولاً ضبط الدرجة بدقة فائقة وتهتز الدلة بخفة.",
+      camera: "reaction close-up on Barq and dallah",
+      sound: "مؤثر حسابات رقمية وميكانيكية",
+      dialogue: [
+        {
+          speakerId: "barq",
+          exactText: "لكن الخوارزمية تقول—",
+          textAr: "لكن الخوارزمية تقول—",
+          language: "ar" as const,
+          dialect: "Saudi Digital Arabic",
+          voiceName: "Puck",
+          voiceDirection: "eager argumentative cadence",
+        },
+      ],
+      audioPlan: {
+        audioMode: "hybrid" as const,
+        ambient: "مؤثر حسابات رقمية وميكانيكية",
+      },
+    },
+    {
+      seconds: 5,
+      action: "أبو ناصر يمد يده بسلاسة ويمسك الدلة بثقة ويصب في الفنجان بحركة كرم أصيلة وسريعة.",
+      camera: "macro insert on dallah pouring into finjan, steam rising",
+      sound: "صوت انسكاب القهوة السعودية الساخنة في الفنجان بخروج البخار",
+      dialogue: [
+        {
+          speakerId: "abu-nasser",
+          exactText: "والضيف يقول عطشان.",
+          textAr: "والضيف يقول عطشان.",
+          language: "ar" as const,
+          dialect: "Central Saudi (Najdi) Arabic",
+          voiceName: "Orus",
+          voiceDirection: "dry humorous punchline delivery",
+        },
+      ],
+      audioPlan: {
+        audioMode: "hybrid" as const,
+        ambient: "صوت انسكاب القهوة السعودية الساخنة في الفنجان بخروج البخار",
+      },
+    },
+    {
+      seconds: 5,
+      action: "برق تومض عيناه الرقميتان بإعجاب ويأخذ تمرة سكرية ويقدمها للضيف بجانب الفنجان في لقطة ختامية دافئة.",
+      camera: "hero two-shot, warm golden lighting",
+      sound: "ضحكة دافئة ومؤثر ختام شرقي لطيف",
+      dialogue: [
+        {
+          speakerId: "barq",
+          exactText: "تم التحديث: الكرم يتفوق على الخوارزمية!",
+          textAr: "تم التحديث: الكرم يتفوق على الخوارزمية!",
+          language: "ar" as const,
+          dialect: "Saudi Digital Arabic",
+          voiceName: "Puck",
+          voiceDirection: "delighted resolution",
+        },
+      ],
+      audioPlan: {
+        audioMode: "hybrid" as const,
+        ambient: "ضحكة دافئة ومؤثر ختام شرقي لطيف",
+      },
+    },
+    {
+      seconds: 5,
+      action: "أبو ناصر يبتسم لبرق ويشرب رشفة قهوة، ويشيران معًا للمتابعة وسط أجواء الضيافة السعودية.",
+      camera: "loop-friendly final frame, soft cafe ambience",
+      sound: "صوت رشفة القهوة ورنين الفنجان + نغمة ختام دافئة",
+      dialogue: [
+        {
+          speakerId: "abu-nasser",
+          exactText: "حياكم الله في قهوة المستقبل!",
+          textAr: "حياكم الله في قهوة المستقبل!",
+          language: "ar" as const,
+          dialect: "Central Saudi (Najdi) Arabic",
+          voiceName: "Orus",
+          voiceDirection: "warm closing invite",
+        },
+      ],
+      audioPlan: {
+        audioMode: "hybrid" as const,
+        ambient: "نغمة ختام دافئة",
+      },
+    },
+    {
+      seconds: 5,
+      action: "لقطة بصرية مركزة على الفنجان والبخار المتصاعد مع ابتسامة الروبوت برق.",
+      camera: "macro beauty shot on finjan with gentle steam",
+      sound: "نغمة عود هادئة",
+      audioPlan: {
+        audioMode: "hybrid" as const,
+        ambient: "نغمة عود هادئة",
+      },
+    },
+  ];
+
   const genericBase = [
     { seconds: 4, action: `Cold open / hook for: ${subject}. Show the recurring leads immediately in a visually clear situation.`, camera: "fast establishing push-in, vertical medium shot", sound: "short hook line + location ambience" },
     { seconds: 5, action: "Establish who wants what and the immediate situation; preserve character wardrobe and face references.", camera: "two-shot, eye-level, subtle handheld energy", sound: "brief dialogue exchange" },
@@ -290,17 +453,21 @@ export function projectTemplatePlan(project: StudioPlanProject, subject: string,
     { seconds: 4, action: "Clean ending beat that can loop into the opening and leaves room for a follow/future-episode CTA.", camera: "short hero hold / loop-friendly final frame", sound: "tag line + light ambience" },
   ];
 
-  const base = isIyal ? iyalBase : genericBase;
-  const quick = [base[0], base[1], { ...base[2], seconds: 5 }, { ...base[4], seconds: 5 }, { ...base[6], seconds: 6 }, { ...base[7], seconds: 5 }];
-  const extended = [...base, { ...base[7], seconds: 5, action: "Extra tag scene after the payoff: one last character reaction or callback that tees up the next episode.", camera: "simple callback close-up", sound: "short callback line" }];
-  const shots = preset === "quick" ? quick : preset === "extended" ? extended : base;
+  const base = isFutureGahwa ? futureGahwaBase : isIyal ? iyalBase : genericBase;
+  const quick = [base[0], base[1], { ...base[2], seconds: 5 }, { ...base[3], seconds: 5 }, { ...base[4], seconds: 6 }, { ...base[5] ?? base[4], seconds: 5 }];
+  const extended = [...base, { ...base[base.length - 1], seconds: 5, action: "Extra tag scene after the payoff: one last character reaction or callback that tees up the next episode.", camera: "simple callback close-up", sound: "short callback line" }];
+  const shots = preset === "quick" ? quick : preset === "extended" ? extended : base.slice(0, 8);
   const names = project.bible?.characters?.map((c) => c.displayNameAr ?? c.name).join("، ") || project.name;
   return {
     recipeSummary: ar ? `حلقة قصيرة عن «${subject}» ضمن مشروع ${project.name}.` : `Short episode about "${subject}" inside ${project.name}.`,
     miniatureBrief: ar ? `ثبات الشخصيات والملابس واللهجة إلزامي. الشخصيات: ${names}.` : `Character identity, wardrobe, dialect and world continuity are mandatory. Characters: ${names}.`,
     shots,
     title: ar ? `${subject} | ${project.name}` : `${subject} | ${project.name}`,
-    caption: ar ? `موقف جديد من ${project.name} 😂 تابع للنهاية.` : `A new ${project.name} episode. Watch the payoff to the end.`,
-    hashtags: project.id === "iyal-al-halal" ? ["#عيال_الحلال", "#كوميديا", "#الأردن", "#السعودية", "#AI"] : ["#KiswaniAI", "#AIvideo", "#shorts"],
+    caption: ar ? `موقف جديد من ${project.name} ☕😂 تابع للنهاية.` : `A new ${project.name} episode. Watch the payoff to the end.`,
+    hashtags: project.id === "future-gahwa"
+      ? ["#قهوة_المستقبل", "#القهوة_السعودية", "#برق", "#أبو_ناصر", "#AI", "#الرياض"]
+      : project.id === "iyal-al-halal"
+      ? ["#عيال_الحلال", "#كوميديا", "#الأردن", "#السعودية", "#AI"]
+      : ["#KiswaniAI", "#AIvideo", "#shorts"],
   };
 }

@@ -152,6 +152,39 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ project, character: char, asset: approvedAsset });
     }
 
+    if (body.action === "generate_environment") {
+      const prompt = body.prompt || (
+        "Warm cinematic visual anchor of a modern-traditional Saudi coffee corner. Traditional brass Saudi dallah, finjan cups, Al-Qassim dates tray, warm lighting, subtle futuristic holographic accents, vertical 9:16."
+      );
+      let imageUrl = "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"720\" height=\"1280\"><rect width=\"100%\" height=\"100%\" fill=\"%231a1a1a\"/><text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"%23f39c12\" font-size=\"24\">Environment Reference Preview</text></svg>";
+      let modelUsed = "mock";
+
+      if (cleanEnv("GEMINI_API_KEY")) {
+        const result = await generateGoogleImage(prompt, { aspectRatio: "9:16" });
+        imageUrl = result.imageUrl;
+        modelUsed = result.modelUsed;
+      }
+
+      return NextResponse.json({
+        asset: {
+          id: "env_ref_" + Date.now().toString(36),
+          url: imageUrl,
+          label: "Environment Master Reference",
+          approved: false,
+          prompt,
+        },
+        modelUsed,
+      });
+    }
+
+    if (body.action === "approve_environment") {
+      if (!body.imageUrl) throw new Error("Image URL is required.");
+      project.bible.referenceImageUrls = [body.imageUrl, ...(project.bible.referenceImageUrls ?? [])];
+      project.updatedAt = new Date().toISOString();
+      await store.saveProject(project);
+      return NextResponse.json({ project, referenceImageUrls: project.bible.referenceImageUrls });
+    }
+
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Reference operation failed";

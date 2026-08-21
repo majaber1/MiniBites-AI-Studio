@@ -5,10 +5,10 @@ process.env.VIDEO_PROVIDER = "mock";
 delete process.env.ANTHROPIC_API_KEY;
 delete process.env.GEMINI_API_KEY;
 
-test("Kiswani ships MiniBites and Iyal Al Halal as separate projects", async () => {
+test("Kiswani ships MiniBites, Iyal Al Halal, and Future Gahwa as separate projects", async () => {
   const { builtinProjects } = await import("../lib/projects.ts");
   const projects = builtinProjects("owner-1");
-  assert.deepEqual(projects.map((p) => p.id), ["minibites", "iyal-al-halal"]);
+  assert.deepEqual(projects.map((p) => p.id), ["minibites", "iyal-al-halal", "future-gahwa"]);
   const iyal = projects.find((p) => p.id === "iyal-al-halal");
   assert.equal(iyal.kind, "character_series");
   assert.deepEqual(iyal.bible.characters.map((c) => c.id), ["dheeban", "fhaid", "manfoosha"]);

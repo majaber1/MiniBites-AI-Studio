@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "@/components/api";
 import AccessGate from "@/components/AccessGate";
 import StatusBadge from "@/components/StatusBadge";
+import GenerationMonitor from "@/components/GenerationMonitor";
 import { useLocale } from "@/components/LocaleProvider";
 import type { Production } from "@/lib/types";
 
@@ -89,6 +90,7 @@ export default function MonitoringPage() {
             return <div key={p.id} className="card" style={{ marginTop: 12 }}>
               <div className="dashboard-section-head"><div><strong>{p.episodeTitle ?? p.dish}</strong><p className="dim">{p.projectName ?? "MiniBites"} · Engine: {p.provider}{p.providerChoice ? ` (selected: ${p.providerChoice})` : ""}</p></div><StatusBadge status={p.status} /></div>
               <ol style={{ display: "grid", gridTemplateColumns: "repeat(7,minmax(0,1fr))", gap: 6, padding: 0, listStyle: "none" }}>{pipeline.map((step, index) => <li key={step} className={index < current ? "note" : index === current ? "warn" : "dim"} style={{ padding: 8, textAlign: "center", borderRadius: 10 }}><small>{index < current ? "✓" : index === current ? "●" : "○"} {step}</small></li>)}</ol>
+              <GenerationMonitor monitor={p.generationMonitor} directorMode={p.directorMode} audioMode={p.audioMode} provider={p.provider} />
               <div className="readiness-list">{p.shots.map((shot) => <div key={shot.id}><span className={`integration-dot ${shot.status === "completed" ? "connected" : ""}`} /><span><strong>Shot {String(shot.index).padStart(2, "0")}</strong><small>{shot.status}{shot.providerJobId ? ` · ${shot.providerJobId.slice(0, 16)}…` : ""}{shot.queuePosition ? ` · queue #${shot.queuePosition}` : ""}{shot.estimatedCostUsd ? ` · ~$${shot.estimatedCostUsd.toFixed(2)}` : ""}{shot.error ? ` · ${shot.error}` : ""}</small></span></div>)}</div>
             </div>;
           })}
